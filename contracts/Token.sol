@@ -21,6 +21,9 @@ contract SyncToken {
     /// @notice Total number of tokens in circulation
     uint public totalSupply;
 
+    /// @notice Minter address
+    address public minter;
+
     /// @notice Allowance amounts on behalf of others
     mapping (address => mapping (address => uint96)) internal allowances;
 
@@ -63,14 +66,23 @@ contract SyncToken {
     /// @notice The standard EIP-20 approval event
     event Approval(address indexed owner, address indexed spender, uint256 amount);
 
+    /// @notice An event thats emitted when the minter is changed
+    event NewMinter(address minter);
+
+    modifier onlyMinter {
+        require(msg.sender == minter, "SyncToken:onlyMinter: should only be called by minter");
+        _;
+    }
+
     /**
      * @notice Construct a new Sync token
      * @param initialSupply The initial supply minted at deployment
      * @param account The initial account to grant all the tokens
      */
-    constructor(uint initialSupply, address account) public {
+    constructor(uint initialSupply, address account, address _minter) public {
         totalSupply = safe96(initialSupply, "SyncToken::constructor:amount exceeds 96 bits");
         balances[account] = uint96(initialSupply);
+        minter = _minter;
         emit Transfer(address(0), account, initialSupply);
     }
 
@@ -113,6 +125,27 @@ contract SyncToken {
      */
     function balanceOf(address account) external view returns (uint) {
         return balances[account];
+    }
+
+    /**
+     * @notice Mint `amount` tokens to `dst`
+     * @param dst The address of the destination account
+     * @param rawAmount The number of tokens to transfer
+     * @notice only callable by minter
+     */
+    function mint(address dst, uint rawAmount) external onlyMinter {
+        uint96 amount = safe96(rawAmount, "SyncToken::mint: amount exceeds 96 bits");
+        _mintTokens(dst, amount);
+    }
+
+    /**
+     * @notice Mint `amount` tokens to `dst`
+     * @param account The address of the new minter
+     * @notice only callable by minter
+     */
+    function changeMinter(address account) external onlyMinter {
+        minter = account;
+        emit NewMinter(account);
     }
 
     /**
@@ -248,6 +281,15 @@ contract SyncToken {
         emit Transfer(src, dst, amount);
 
         _moveDelegates(delegates[src], delegates[dst], amount);
+    }
+
+    function _mintTokens(address dst, uint96 amount) internal {
+        require(dst != address(0), "SyncToken::_mintTokens: cannot transfer to the zero address");
+
+        balances[dst] = add96(balances[dst], amount, "SyncToken::_mintTokens: transfer amount overflows");
+        emit Transfer(address(0), dst, amount);
+
+        _moveDelegates(address(0), delegates[dst], amount);
     }
 
     function _moveDelegates(address srcRep, address dstRep, uint96 amount) internal {
