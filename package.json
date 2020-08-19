@@ -16,6 +16,9 @@
     "url": "https://github.com/syncdao/core/issues"
   },
   "homepage": "https://github.com/syncdao/core#readme",
+  "dependencies": {
+    "openzeppelin-solidity-2.3.0": "npm:openzeppelin-solidity@2.3.0"
+  },
   "devDependencies": {
     "@nomiclabs/buidler": "^1.4.3",
     "@nomiclabs/buidler-ethers": "^2.0.0",
