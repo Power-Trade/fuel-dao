@@ -19,10 +19,10 @@ contract Governor {
     uint public proposalThreshold;
 
     /// @notice The maximum number of actions that can be included in a proposal
-    uint public proposalMaxOperations = 10;
+    uint public proposalMaxOperations = 20;
 
     /// @notice The delay before voting on a proposal may take place, once proposed
-    uint public votingDelay = 1;
+    uint public votingDelay;
 
     /// @notice The duration of voting on a proposal, in blocks
     uint public votingPeriod;
@@ -134,13 +134,14 @@ contract Governor {
     /// @notice An event emitted when a proposal has been executed in the Timelock
     event ProposalExecuted(uint id);
 
-    constructor(address timelock_, address sync_, address guardian_, uint quorumVotes_, uint proposalThreshold_, uint votingPeriodBlocks_) public {
+    constructor(address timelock_, address sync_, address guardian_, uint quorumVotes_, uint proposalThreshold_, uint votingPeriodBlocks_, uint votingDelayBlocks_) public {
         timelock = TimelockInterface(timelock_);
         sync = SyncTokenInterface(sync_);
         guardian = guardian_;
         quorumVotes = quorumVotes_;
         proposalThreshold = proposalThreshold_;
         votingPeriod = votingPeriodBlocks_;
+        votingDelay = votingDelayBlocks_;
     }
 
     function propose(address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description) public returns (uint) {
@@ -296,6 +297,12 @@ contract Governor {
     function __abdicate() public {
         require(msg.sender == guardian, "Governor::__abdicate: sender must be gov guardian");
         guardian = address(0);
+    }
+
+    function __moveGuardianship(address _guardian) public {
+        require(msg.sender == guardian, "Governor::__moveGuardianship: sender must be gov guardian");
+        require(_guardian != address(0), "Governor::__moveGuardianship: new guardian cannot be address zero");
+        guardian = _guardian;
     }
 
     function add256(uint256 a, uint256 b) internal pure returns (uint) {

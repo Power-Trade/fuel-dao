@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/syncdao/core#readme",
   "dependencies": {
+    "dotenv": "^8.2.0",
     "openzeppelin-solidity-2.3.0": "npm:openzeppelin-solidity@2.3.0"
   },
   "devDependencies": {
