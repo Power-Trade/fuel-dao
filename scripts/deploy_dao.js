@@ -20,7 +20,7 @@ async function main() {
   await timelock.deployed();
   console.log('Timelock deployed at', timelock.address)
   const SyncToken = await ethers.getContractFactory("SyncToken");
-  const syncToken = await SyncToken.deploy(TOKEN_SUPPLY, await deployer.getAddress(), timelock.address);
+  const syncToken = await SyncToken.deploy(TOKEN_SUPPLY, GOVERNOR_GUARDIAN, timelock.address);
   await syncToken.deployed();
   console.log('SyncToken deployed at', syncToken.address)
   const Governor = await ethers.getContractFactory("Governor");
