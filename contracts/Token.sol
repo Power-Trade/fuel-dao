@@ -10,10 +10,10 @@ pragma experimental ABIEncoderV2;
 
 contract SyncToken {
     /// @notice EIP-20 token name for this token
-    string public constant name = "Sync DAO";
+    string public constant name = "Sync DAO Governance Token";
 
     /// @notice EIP-20 token symbol for this token
-    string public constant symbol = "SYNC";
+    string public constant symbol = "SDG";
 
     /// @notice EIP-20 token decimals for this token
     uint8 public constant decimals = 18;
