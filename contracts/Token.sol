@@ -130,7 +130,7 @@ contract SyncToken {
     /**
      * @notice Mint `amount` tokens to `dst`
      * @param dst The address of the destination account
-     * @param rawAmount The number of tokens to transfer
+     * @param rawAmount The number of tokens to mint
      * @notice only callable by minter
      */
     function mint(address dst, uint rawAmount) external onlyMinter {
@@ -139,7 +139,16 @@ contract SyncToken {
     }
 
     /**
-     * @notice Mint `amount` tokens to `dst`
+     * @notice Burn `amount` tokens
+     * @param rawAmount The number of tokens to burn
+     */
+    function burn(uint rawAmount) external {
+        uint96 amount = safe96(rawAmount, "SyncToken::burn: amount exceeds 96 bits");
+        _burnTokens(msg.sender, amount);
+    }
+
+    /**
+     * @notice Change minter address to `account`
      * @param account The address of the new minter
      * @notice only callable by minter
      */
@@ -285,11 +294,21 @@ contract SyncToken {
 
     function _mintTokens(address dst, uint96 amount) internal {
         require(dst != address(0), "SyncToken::_mintTokens: cannot transfer to the zero address");
-
+        uint96 supply = safe96(totalSupply, "SyncToken::_mintTokens: totalSupply exceeds 96 bits");
+        totalSupply = add96(supply, amount, "SyncToken::_mintTokens: totalSupply exceeds 96 bits");
         balances[dst] = add96(balances[dst], amount, "SyncToken::_mintTokens: transfer amount overflows");
         emit Transfer(address(0), dst, amount);
 
         _moveDelegates(address(0), delegates[dst], amount);
+    }
+
+    function _burnTokens(address src, uint96 amount) internal {
+        uint96 supply = safe96(totalSupply, "SyncToken::_burnTokens: totalSupply exceeds 96 bits");
+        totalSupply = sub96(supply, amount, "SyncToken::_burnTokens:totalSupply underflow");
+        balances[src] = sub96(balances[src], amount, "SyncToken::_burnTokens: amount overflows");
+        emit Transfer(src, address(0), amount);
+
+        _moveDelegates(delegates[src], address(0), amount);
     }
 
     function _moveDelegates(address srcRep, address dstRep, uint96 amount) internal {
