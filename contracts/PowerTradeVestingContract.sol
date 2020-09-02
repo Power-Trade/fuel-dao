@@ -75,7 +75,9 @@ contract PowerTradeVestingContract is WhitelistedRole, ReentrancyGuard {
             });
 
         // Vest the tokens into the deposit account
-        depositAccount.deposit(msg.sender, _amount);
+        token.transferFrom(msg.sender, self, _amount);
+        token.approve(address(depositAccount), _amount);
+        depositAccount.deposit(self, _amount);
 
         emit ScheduleCreated(_beneficiary, _amount, _start, _durationInDays);
 
@@ -113,8 +115,14 @@ contract PowerTradeVestingContract is WhitelistedRole, ReentrancyGuard {
     // Accessors //
     ///////////////
 
+    // for a given beneficiary
     function tokenBalance() public view returns (uint256) {
-        return token.balanceOf(address(this));
+        return token.balanceOf(depositAccountAddress());
+    }
+
+    function depositAccountAddress() public view returns (address) {
+        Schedule memory schedule = vestingSchedule[msg.sender];
+        return address(schedule.depositAccount);
     }
 
     function vestingScheduleForBeneficiary(address _beneficiary)
