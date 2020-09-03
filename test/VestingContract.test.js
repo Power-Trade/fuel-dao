@@ -61,7 +61,8 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
       SCHEDULE_1_ID,
       moment.unix(await latest()).add(1, 'day').unix().valueOf(),
       _10days,
-      0
+      0,
+      fromCudos
     )
   })
 
@@ -153,7 +154,8 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
           SCHEDULE_2_ID,
           this.now,
           _10days,
-          0
+          0,
+          fromCudos
         )
 
         await givenAVestingSchedule({
@@ -206,7 +208,8 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
         SCHEDULE_2_ID,
         this.now,
         _10days,
-        0
+        0,
+        fromCudos
       )
 
       await this.vestingContract.fixTime(this.now)
@@ -238,8 +241,8 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
       expectEvent(this.transaction, 'ScheduleCreated', {
         _beneficiary: beneficiary1,
         _amount: TEN_THOUSAND_TOKENS.toString(),
-        _start: this.now.toString(),
-        _duration: _10days.toString()
+        //_start: this.now.toString(),
+        //_duration: _10days.toString()
       })
     })
 
@@ -469,7 +472,8 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
         SCHEDULE_2_ID,
         this.onyDayFromNow,
         _7days,
-        0
+        0,
+        fromCudos
       )
 
       await givenAVestingSchedule({
@@ -521,7 +525,8 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
         SCHEDULE_2_ID,
         this.now,
         _10days,
-        0
+        0,
+        fromCudos
       )
 
       this.transaction = await givenAVestingSchedule({
@@ -554,7 +559,8 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
         SCHEDULE_2_ID,
         this.now,
         _100days,
-        0
+        0,
+        fromCudos
       )
 
       this.transaction = await givenAVestingSchedule({
@@ -958,10 +964,6 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
     const { _scheduleConfigId, _amount, _totalDrawn, _lastDrawnAt, _drawDownRate, _remainingBalance } = await this.vestingContract.vestingScheduleForBeneficiary(beneficiary)
     //const scheduleStart = await this.vestingContract.scheduleStart(beneficiary)
     //const scheduleEnd = await this.vestingContract.scheduleEnd(beneficiary)
-    const scheduleTotalTokens = await this.vestingContract.scheduleTotalTokens(beneficiary)
-    const scheduleTotalDrawn = await this.vestingContract.totalDrawn(beneficiary)
-    const scheduleLastDrawnAt = await this.vestingContract.lastDrawnAt(beneficiary)
-    const scheduleDrawDownRate = await this.vestingContract.drawDownRate(beneficiary)
     const scheduleRemainingBalance = await this.vestingContract.remainingBalance(beneficiary)
 
     //_start.should.be.bignumber.equal(expectations.start)
@@ -971,16 +973,12 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
     //scheduleEnd.should.be.bignumber.equal(expectations.end)
 
     _amount.should.be.bignumber.equal(expectations.amount)
-    scheduleTotalTokens.should.be.bignumber.equal(expectations.amount)
 
     _totalDrawn.should.be.bignumber.equal(expectations.totalDrawn)
-    scheduleTotalDrawn.should.be.bignumber.equal(expectations.totalDrawn)
 
     _lastDrawnAt.should.be.bignumber.equal(expectations.lastDrawnAt)
-    scheduleLastDrawnAt.should.be.bignumber.equal(expectations.lastDrawnAt)
 
     _drawDownRate.should.be.bignumber.equal(expectations.drawDownRate)
-    scheduleDrawDownRate.should.be.bignumber.equal(expectations.drawDownRate)
 
     _remainingBalance.should.be.bignumber.equal(expectations.remainingBalance)
     scheduleRemainingBalance.should.be.bignumber.equal(expectations.remainingBalance)
