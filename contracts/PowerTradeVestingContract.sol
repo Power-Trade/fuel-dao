@@ -54,6 +54,7 @@ contract PowerTradeVestingContract is ReentrancyGuard {
     }
 
     function createVestingScheduleConfig(string calldata _scheduleConfigId, uint256 _start, uint256 _durationInDays, uint256 _cliffDurationBeforeStartInDays) external {
+        require(msg.sender == owner, "Only the owner can set up schedule configs");
         require(_durationInDays > 0, "Duration cannot be empty");
         uint256 _durationInSecs = _durationInDays.mul(PERIOD_ONE_DAY_IN_SECONDS);
         uint256 _cliffDurationInSecs = _cliffDurationBeforeStartInDays.mul(PERIOD_ONE_DAY_IN_SECONDS);

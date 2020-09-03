@@ -955,20 +955,20 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
   }
 
   const validateVestingScheduleForBeneficiary = async (beneficiary, expectations) => {
-    const { _start, _end, _amount, _totalDrawn, _lastDrawnAt, _drawDownRate, _remainingBalance } = await this.vestingContract.vestingScheduleForBeneficiary(beneficiary)
-    const scheduleStart = await this.vestingContract.scheduleStart(beneficiary)
-    const scheduleEnd = await this.vestingContract.scheduleEnd(beneficiary)
+    const { _scheduleConfigId, _amount, _totalDrawn, _lastDrawnAt, _drawDownRate, _remainingBalance } = await this.vestingContract.vestingScheduleForBeneficiary(beneficiary)
+    //const scheduleStart = await this.vestingContract.scheduleStart(beneficiary)
+    //const scheduleEnd = await this.vestingContract.scheduleEnd(beneficiary)
     const scheduleTotalTokens = await this.vestingContract.scheduleTotalTokens(beneficiary)
     const scheduleTotalDrawn = await this.vestingContract.totalDrawn(beneficiary)
     const scheduleLastDrawnAt = await this.vestingContract.lastDrawnAt(beneficiary)
     const scheduleDrawDownRate = await this.vestingContract.drawDownRate(beneficiary)
     const scheduleRemainingBalance = await this.vestingContract.remainingBalance(beneficiary)
 
-    _start.should.be.bignumber.equal(expectations.start)
-    scheduleStart.should.be.bignumber.equal(expectations.start)
+    //_start.should.be.bignumber.equal(expectations.start)
+    //scheduleStart.should.be.bignumber.equal(expectations.start)
 
-    _end.should.be.bignumber.equal(expectations.end)
-    scheduleEnd.should.be.bignumber.equal(expectations.end)
+    //_end.should.be.bignumber.equal(expectations.end)
+    //scheduleEnd.should.be.bignumber.equal(expectations.end)
 
     _amount.should.be.bignumber.equal(expectations.amount)
     scheduleTotalTokens.should.be.bignumber.equal(expectations.amount)
