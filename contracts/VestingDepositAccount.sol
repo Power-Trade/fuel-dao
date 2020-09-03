@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "./Token.sol";
+import "./SyncToken.sol";
 
 contract VestingDepositAccount {
     address controller;

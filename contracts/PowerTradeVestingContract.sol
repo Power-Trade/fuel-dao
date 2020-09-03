@@ -153,30 +153,6 @@ contract PowerTradeVestingContract is ReentrancyGuard {
         return _availableDrawDownAmount(_beneficiary);
     }
 
-//    function scheduleStart(address _beneficiary) external view returns (uint256) {
-//        return vestingSchedule[_beneficiary].start;
-//    }
-//
-//    function scheduleEnd(address _beneficiary) external view returns (uint256) {
-//        return vestingSchedule[_beneficiary].end;
-//    }
-
-    function scheduleTotalTokens(address _beneficiary) external view returns (uint256) {
-        return vestingSchedule[_beneficiary].amount;
-    }
-
-//    function totalDrawn(address _beneficiary) external view returns (uint256) {
-//        return totalDrawn[_beneficiary];
-//    }
-//
-//    function lastDrawnAt(address _beneficiary) external view returns (uint256) {
-//        return lastDrawnAt[_beneficiary];
-//    }
-
-    function drawDownRate(address _beneficiary) external view returns (uint256) {
-        return vestingSchedule[_beneficiary].drawDownRate;
-    }
-
     function remainingBalance(address _beneficiary) external view returns (uint256) {
         Schedule memory schedule = vestingSchedule[_beneficiary];
         return schedule.amount.sub(totalDrawn[_beneficiary]);
