@@ -1,5 +1,6 @@
 require('dotenv').config()
 usePlugin("@nomiclabs/buidler-waffle");
+usePlugin("@nomiclabs/buidler-truffle5");
 
 const INFURA_PROJECT_ID = process.env.INFURA_PROJECT_ID;
 const PRIVATE_KEY = process.env.PRIVATE_KEY;

@@ -9,7 +9,7 @@ const VestingContract = artifacts.require('VestingContractWithFixedTime')
 const ActualVestingContract = artifacts.require('PowerTradeVestingContract')
 const CudosToken = artifacts.require('SyncToken')
 
-contract.only('VestingContract', function ([_, cudos, random, beneficiary1, beneficiary2, beneficiary3]) {
+contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficiary2, beneficiary3]) {
   const DECIMALS = 18
   const TEN_BILLION = new BN(10000000)
   const FIFTY_BILLION = new BN(50000000000)
@@ -103,12 +103,12 @@ contract.only('VestingContract', function ([_, cudos, random, beneficiary1, bene
         )
       })
 
-      it('not whitelisted', async () => {
-        await expectRevert(
-          givenAVestingSchedule({ from: random }),
-          'WhitelistedRole: caller does not have the Whitelisted role.'
-        )
-      })
+      // it('not whitelisted', async () => {
+      //   await expectRevert(
+      //     givenAVestingSchedule({ from: random }),
+      //     'WhitelistedRole: caller does not have the Whitelisted role.'
+      //   )
+      // })
     })
 
     describe('drawDown() reverts when', async () => {
