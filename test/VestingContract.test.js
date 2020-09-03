@@ -328,7 +328,7 @@ contract.only('VestingContract', function ([_, cudos, random, beneficiary1, bene
           (await this.token.balanceOf(beneficiary1))
             .should.be.bignumber.equal(this.expectedTotalDrawnAfter1Day);
 
-          (await this.token.balanceOf(this.vestingContract.address))
+          (await this.token.balanceOf(await this.vestingContract.depositAccountAddress({from: beneficiary1})))
             .should.be.bignumber.equal(TEN_THOUSAND_TOKENS.sub(this.expectedTotalDrawnAfter1Day));
 
           (await this.vestingContract.remainingBalance(beneficiary1))
@@ -373,7 +373,7 @@ contract.only('VestingContract', function ([_, cudos, random, beneficiary1, bene
             (await this.token.balanceOf(beneficiary1))
               .should.be.bignumber.equal(expectedTotalDrawnAfter5Day);
 
-            (await this.token.balanceOf(this.vestingContract.address))
+            (await this.token.balanceOf(await this.vestingContract.depositAccountAddress({from: beneficiary1})))
               .should.be.bignumber.equal(TEN_THOUSAND_TOKENS.sub(expectedTotalDrawnAfter5Day));
 
             (await this.vestingContract.remainingBalance(beneficiary1))
@@ -494,9 +494,9 @@ contract.only('VestingContract', function ([_, cudos, random, beneficiary1, bene
     })
 
     it('should draw down full amount in one call', async () => {
-      (await this.vestingContract.tokenBalance()).should.be.bignumber.equal(TEN_THOUSAND_TOKENS);
+      (await this.vestingContract.tokenBalance({from: beneficiary1})).should.be.bignumber.equal(TEN_THOUSAND_TOKENS);
 
-      (await this.token.balanceOf(beneficiary1)).should.be.bignumber.equal('0')
+      (await this.token.balanceOf(beneficiary1)).should.be.bignumber.equal('0');
 
       await this.vestingContract.drawDown({ from: beneficiary1 });
 
@@ -529,7 +529,7 @@ contract.only('VestingContract', function ([_, cudos, random, beneficiary1, bene
             .unix().valueOf()
         await this.vestingContract.fixTime(this._100DaysAfterScheduleStart);
 
-        (await this.vestingContract.tokenBalance()).should.be.bignumber.equal(_3333_THOUSAND_TOKENS);
+        (await this.vestingContract.tokenBalance({from : beneficiary1})).should.be.bignumber.equal(_3333_THOUSAND_TOKENS);
 
         (await this.token.balanceOf(beneficiary1)).should.be.bignumber.equal('0')
 
@@ -600,18 +600,6 @@ contract.only('VestingContract', function ([_, cudos, random, beneficiary1, bene
         duration: _7days
       })
       await this.vestingContract.fixTime(this.now)
-    })
-
-    it('vesting contract holds all tokens for all schedules', async () => {
-      const tokenBalance = await this.token.balanceOf(this.vestingContract.address)
-      tokenBalance.should.be.bignumber.equal(
-        _3333_THOUSAND_TOKENS.add(TEN_THOUSAND_TOKENS).add(FIVE_THOUSAND_TOKENS)
-      )
-
-      const vestingTokenBalance = await this.vestingContract.tokenBalance()
-      vestingTokenBalance.should.be.bignumber.equal(
-        _3333_THOUSAND_TOKENS.add(TEN_THOUSAND_TOKENS).add(FIVE_THOUSAND_TOKENS)
-      )
     })
 
     it('schedule 1 setup correctly', async () => {
@@ -755,17 +743,11 @@ contract.only('VestingContract', function ([_, cudos, random, beneficiary1, bene
               new BN('1').mul(PERIOD_ONE_DAY_IN_SECONDS) // time passed
             )
 
-          const remainingBalance = _3333_THOUSAND_TOKENS
-            .add(TEN_THOUSAND_TOKENS)
-            .add(FIVE_THOUSAND_TOKENS)
-            .sub(schedule1DrawDown)
-            .sub(schedule2DrawDown)
+          const beneficiary1RemainingBalance = await this.vestingContract.tokenBalance({from: beneficiary1})
+          beneficiary1RemainingBalance.should.be.bignumber.equal(_3333_THOUSAND_TOKENS.sub(schedule1DrawDown))
 
-          const vestingTokenBalance = await this.token.balanceOf(this.vestingContract.address)
-          vestingTokenBalance.should.be.bignumber.equal(remainingBalance)
-
-          const vestingContractBalance = await this.vestingContract.tokenBalance()
-          vestingContractBalance.should.be.bignumber.equal(remainingBalance)
+          const beneficiary2RemainingBalance = await this.vestingContract.tokenBalance({from: beneficiary2})
+          beneficiary2RemainingBalance.should.be.bignumber.equal(TEN_THOUSAND_TOKENS.sub(schedule2DrawDown))
         })
       })
 
@@ -847,18 +829,8 @@ contract.only('VestingContract', function ([_, cudos, random, beneficiary1, bene
             new BN('10').mul(PERIOD_ONE_DAY_IN_SECONDS) // time passed
           )
 
-          const remainingBalance = _3333_THOUSAND_TOKENS
-            .add(TEN_THOUSAND_TOKENS)
-            .add(FIVE_THOUSAND_TOKENS)
-            .sub(_3333_THOUSAND_TOKENS) // schedule 1 complete
-            .sub(FIVE_THOUSAND_TOKENS) // schedule 3 complete
-            .sub(schedule2DrawDown) // schedule 2 in flight
-
-          const vestingTokenBalance = await this.token.balanceOf(this.vestingContract.address)
-          vestingTokenBalance.should.be.bignumber.equal(remainingBalance)
-
-          const vestingContractBalance = await this.vestingContract.tokenBalance()
-          vestingContractBalance.should.be.bignumber.equal(remainingBalance)
+          const beneficiary2RemainingBalance = await this.vestingContract.tokenBalance({from: beneficiary2})
+          beneficiary2RemainingBalance.should.be.bignumber.equal(TEN_THOUSAND_TOKENS.sub(schedule2DrawDown))
         })
 
         it('beneficiary 1 cannot drawn down anymore', async () => {
