@@ -32,6 +32,8 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
 
   const SCHEDULE_1_ID = 'schedule_1';
   const SCHEDULE_2_ID = 'schedule_2';
+  const SCHEDULE_3_ID = 'schedule_3';
+  const SCHEDULE_4_ID = 'schedule_4';
 
   const fromAdmin = { from: admin }
   const fromRandom = { from: random }
@@ -623,33 +625,57 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
     })
   })
 
-  describe.skip('multiple schedules', async () => {
+  describe('multiple schedules', async () => {
     beforeEach(async () => {
       this.now = moment.unix(await latest()).unix().valueOf()
+
+      await this.vestingContract.createVestingScheduleConfig(
+        SCHEDULE_2_ID,
+        this.now,
+        _10days,
+        0,
+        fromAdmin
+      )
+
       await givenAVestingSchedule({
-        start: this.now,
+        scheduleConfigId: SCHEDULE_2_ID,
         ...fromAdmin,
         beneficiary: beneficiary1,
-        amount: _3333_THOUSAND_TOKENS,
-        duration: _10days
+        amount: _3333_THOUSAND_TOKENS
       })
 
       this._1DayInTheFuture = moment.unix(this.now).add(1, 'day').unix().valueOf()
+
+      await this.vestingContract.createVestingScheduleConfig(
+        SCHEDULE_3_ID,
+        this._1DayInTheFuture,
+        _100days,
+        0,
+        fromAdmin
+      )
+
       await givenAVestingSchedule({
-        start: this._1DayInTheFuture,
+        scheduleConfigId: SCHEDULE_3_ID,
         ...fromAdmin,
         beneficiary: beneficiary2,
-        amount: TEN_THOUSAND_TOKENS,
-        duration: _100days
+        amount: TEN_THOUSAND_TOKENS
       })
 
       this._3DayInTheFuture = moment.unix(this.now).add(3, 'day').unix().valueOf()
+
+      await this.vestingContract.createVestingScheduleConfig(
+        SCHEDULE_4_ID,
+        this._3DayInTheFuture,
+        _7days,
+        0,
+        fromAdmin
+      )
+
       await givenAVestingSchedule({
-        start: this._3DayInTheFuture,
+        scheduleConfigId: SCHEDULE_4_ID,
         ...fromAdmin,
         beneficiary: beneficiary3,
-        amount: FIVE_THOUSAND_TOKENS,
-        duration: _7days
+        amount: FIVE_THOUSAND_TOKENS
       })
       await this.vestingContract.fixTime(this.now)
     })
