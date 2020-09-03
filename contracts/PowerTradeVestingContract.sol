@@ -5,21 +5,14 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./IERC20.sol";
 import "./VestingDepositAccount.sol";
 
-//TODO admin ability to transfer locked tokens
+// TODO admin ability to transfer locked tokens
 
 contract PowerTradeVestingContract is ReentrancyGuard {
     using SafeMath for uint256;
 
-    event ScheduleCreated(
-        address indexed _beneficiary,
-        uint256 indexed _amount
-    );
+    event ScheduleCreated(address indexed _beneficiary, uint256 indexed _amount);
 
-    event DrawDown(
-        address indexed _beneficiary,
-        uint256 indexed _amount,
-        uint256 indexed _time
-    );
+    event DrawDown(address indexed _beneficiary, uint256 indexed _amount, uint256 indexed _time);
 
     struct ScheduleConfig {
         uint256 start;
@@ -34,7 +27,7 @@ contract PowerTradeVestingContract is ReentrancyGuard {
         VestingDepositAccount depositAccount;
     }
 
-    address owner;
+    address public owner;
 
     // Vested address to its schedule
     mapping(string => ScheduleConfig) public vestingScheduleConfigs;
@@ -116,6 +109,7 @@ contract PowerTradeVestingContract is ReentrancyGuard {
         return true;
     }
 
+    // note only the beneficiary can claim voting rights once setup
     function updateVotingDelegation(address _delegatee) external {
         Schedule storage schedule = vestingSchedule[msg.sender];
         require(schedule.amount > 0, "There is no schedule currently in flight");

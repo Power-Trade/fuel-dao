@@ -19,6 +19,8 @@ contract VestingDepositAccount {
         return token.transfer(beneficiary, _amount);
     }
 
+    // TODO transferToBeneficiaryAndSwitchBeneficiary - only controller
+
     function updateVotingDelegation(address _delegatee) external {
         require(msg.sender == controller, "Only the account controller can call updateVotingDelegation()");
         token.delegate(_delegatee);
