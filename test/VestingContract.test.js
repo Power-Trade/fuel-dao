@@ -7,9 +7,9 @@ require('chai').should()
 
 const VestingContract = artifacts.require('VestingContractWithFixedTime')
 const ActualVestingContract = artifacts.require('PowerTradeVestingContract')
-const CudosToken = artifacts.require('SyncToken')
+const SyncToken = artifacts.require('SyncToken')
 
-contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficiary2, beneficiary3]) {
+contract('VestingContract', function ([_, admin, random, beneficiary1, beneficiary2, beneficiary3]) {
   const DECIMALS = 18
   const TEN_BILLION = new BN(10000000)
   const FIFTY_BILLION = new BN(50000000000)
@@ -33,27 +33,27 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
   const SCHEDULE_1_ID = 'schedule_1';
   const SCHEDULE_2_ID = 'schedule_2';
 
-  const fromCudos = { from: cudos }
+  const fromAdmin = { from: admin }
   const fromRandom = { from: random }
 
   beforeEach(async () => {
-    this.token = await CudosToken.new(INITIAL_SUPPLY, cudos, cudos, fromCudos)
+    this.token = await SyncToken.new(INITIAL_SUPPLY, admin, admin, fromAdmin)
 
     // Ensure transfer are enabled for all for this test
-    // await this.token.toggleTransfers(fromCudos)
+    // await this.token.toggleTransfers(fromAdmin)
 
     // Assert the token is constructed correctly
-    const creatorBalance = await this.token.balanceOf(cudos)
+    const creatorBalance = await this.token.balanceOf(admin)
     creatorBalance.should.be.bignumber.equal(INITIAL_SUPPLY)
 
     // Construct new staking contract
-    this.vestingContract = await VestingContract.new(this.token.address, fromCudos)
+    this.vestingContract = await VestingContract.new(this.token.address, fromAdmin)
 
     // Ensure vesting contract approved to move tokens
-    await this.token.approve(this.vestingContract.address, INITIAL_SUPPLY, fromCudos)
+    await this.token.approve(this.vestingContract.address, INITIAL_SUPPLY, fromAdmin)
 
     // Ensure allowance set for vesting contract
-    const vestingAllowance = await this.token.allowance(cudos, this.vestingContract.address)
+    const vestingAllowance = await this.token.allowance(admin, this.vestingContract.address)
     vestingAllowance.should.be.bignumber.equal(INITIAL_SUPPLY)
 
     // set up a default schedule config
@@ -62,7 +62,7 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
       moment.unix(await latest()).add(1, 'day').unix().valueOf(),
       _10days,
       0,
-      fromCudos
+      fromAdmin
     )
   })
 
@@ -72,7 +72,7 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
   })
 
   it('reverts when trying to create the contract with zero address token', async () => {
-    await expectRevert.unspecified(VestingContract.new(constants.ZERO_ADDRESS, fromCudos))
+    await expectRevert.unspecified(VestingContract.new(constants.ZERO_ADDRESS, fromAdmin))
   })
 
   describe('reverts', async () => {
@@ -81,7 +81,7 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
         await expectRevert(
           givenAVestingSchedule({
             beneficiary: constants.ZERO_ADDRESS,
-            ...fromCudos
+            ...fromAdmin
           }),
           'Beneficiary cannot be empty'
         )
@@ -91,7 +91,7 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
       //   await expectRevert(
       //     givenAVestingSchedule({
       //       amount: 0,
-      //       ...fromCudos
+      //       ...fromAdmin
       //     }),
       //     'Amount cannot be empty'
       //   )
@@ -101,16 +101,16 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
       //   await expectRevert(
       //     givenAVestingSchedule({
       //       duration: 0,
-      //       ...fromCudos
+      //       ...fromAdmin
       //     }),
       //     'Duration cannot be empty'
       //   )
       // })
 
       it('trying to overwrite an inflight schedule', async () => {
-        await givenAVestingSchedule(fromCudos)
+        await givenAVestingSchedule(fromAdmin)
         await expectRevert(
-          givenAVestingSchedule(fromCudos),
+          givenAVestingSchedule(fromAdmin),
           'Schedule already in flight'
         )
       })
@@ -132,11 +132,11 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
       })
 
       it('a beneficiary has no remaining balance', async () => {
-        await givenAVestingSchedule(fromCudos)
+        await givenAVestingSchedule(fromAdmin)
 
         // fast forward 15 days (past the end of the schedule so that all allowance is withdrawn)
         this._15DaysAfterScheduleStart = moment.unix(await latest()).add(15, 'day').unix().valueOf()
-        await this.vestingContract.fixTime(this._15DaysAfterScheduleStart, fromCudos)
+        await this.vestingContract.fixTime(this._15DaysAfterScheduleStart, fromAdmin)
 
         await this.vestingContract.drawDown({ from: beneficiary1 });
         (await this.token.balanceOf(beneficiary1)).should.be.bignumber.equal(TEN_THOUSAND_TOKENS)
@@ -155,17 +155,17 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
           this.now,
           _10days,
           0,
-          fromCudos
+          fromAdmin
         )
 
         await givenAVestingSchedule({
           scheduleConfigId: SCHEDULE_2_ID,
-          ...fromCudos
+          ...fromAdmin
         })
 
         // fast forward 8 days
         this._8DaysAfterScheduleStart = moment.unix(this.now).add(8, 'day').unix().valueOf()
-        await this.vestingContract.fixTime(this._8DaysAfterScheduleStart, fromCudos)
+        await this.vestingContract.fixTime(this._8DaysAfterScheduleStart, fromAdmin)
 
         await this.vestingContract.drawDown({ from: beneficiary1 });
         (await this.token.balanceOf(beneficiary1)).should.be.bignumber.not.equal(TEN_THOUSAND_TOKENS)
@@ -181,15 +181,15 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
 
         await givenAVestingSchedule({
           start: this.now,
-          ...fromCudos
+          ...fromAdmin
         })
 
         // fast forward 8 days
         this._8DaysAfterScheduleStart = moment.unix(this.now).add(8, 'day').unix().valueOf()
-        await this.vestingContract.fixTime(this._8DaysAfterScheduleStart, fromCudos)
+        await this.vestingContract.fixTime(this._8DaysAfterScheduleStart, fromAdmin)
 
         // disable transfers
-        await this.token.toggleTransfers(fromCudos)
+        await this.token.toggleTransfers(fromAdmin)
 
         await expectRevert(
           this.vestingContract.drawDown({ from: beneficiary1 }),
@@ -209,13 +209,13 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
         this.now,
         _10days,
         0,
-        fromCudos
+        fromAdmin
       )
 
       await this.vestingContract.fixTime(this.now)
       this.transaction = await givenAVestingSchedule({
         scheduleConfigId: SCHEDULE_2_ID,
-        ...fromCudos
+        ...fromAdmin
       })
     })
 
@@ -473,13 +473,13 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
         this.onyDayFromNow,
         _7days,
         0,
-        fromCudos
+        fromAdmin
       )
 
       await givenAVestingSchedule({
         scheduleConfigId: SCHEDULE_2_ID,
         amount: FIVE_THOUSAND_TOKENS,
-        ...fromCudos
+        ...fromAdmin
       })
     })
 
@@ -526,12 +526,12 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
         this.now,
         _10days,
         0,
-        fromCudos
+        fromAdmin
       )
 
       this.transaction = await givenAVestingSchedule({
         scheduleConfigId: SCHEDULE_2_ID,
-        ...fromCudos
+        ...fromAdmin
       })
 
       this._11DaysAfterScheduleStart = moment.unix(this.now).add(11, 'day').unix().valueOf()
@@ -560,12 +560,12 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
         this.now,
         _100days,
         0,
-        fromCudos
+        fromAdmin
       )
 
       this.transaction = await givenAVestingSchedule({
         scheduleConfigId: SCHEDULE_2_ID,
-        ...fromCudos,
+        ...fromAdmin,
         beneficiary: beneficiary1,
         amount: _3333_THOUSAND_TOKENS
       })
@@ -628,7 +628,7 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
       this.now = moment.unix(await latest()).unix().valueOf()
       await givenAVestingSchedule({
         start: this.now,
-        ...fromCudos,
+        ...fromAdmin,
         beneficiary: beneficiary1,
         amount: _3333_THOUSAND_TOKENS,
         duration: _10days
@@ -637,7 +637,7 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
       this._1DayInTheFuture = moment.unix(this.now).add(1, 'day').unix().valueOf()
       await givenAVestingSchedule({
         start: this._1DayInTheFuture,
-        ...fromCudos,
+        ...fromAdmin,
         beneficiary: beneficiary2,
         amount: TEN_THOUSAND_TOKENS,
         duration: _100days
@@ -646,7 +646,7 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
       this._3DayInTheFuture = moment.unix(this.now).add(3, 'day').unix().valueOf()
       await givenAVestingSchedule({
         start: this._3DayInTheFuture,
-        ...fromCudos,
+        ...fromAdmin,
         beneficiary: beneficiary3,
         amount: FIVE_THOUSAND_TOKENS,
         duration: _7days
@@ -924,7 +924,7 @@ contract('VestingContract', function ([_, cudos, random, beneficiary1, beneficia
 
   describe('VestingContract', async () => {
     beforeEach(async () => {
-      this.vestingContract = await ActualVestingContract.new(this.token.address, fromCudos)
+      this.vestingContract = await ActualVestingContract.new(this.token.address, fromAdmin)
     })
 
     it('returns zero for empty vesting schedule', async () => {
