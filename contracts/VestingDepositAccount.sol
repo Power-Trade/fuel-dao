@@ -8,8 +8,8 @@ contract VestingDepositAccount {
 
     SyncToken public token;
 
-    constructor(SyncToken _token, address _controller, address _beneficiary) public {
-        token = _token;
+    constructor(address _tokenAddress, address _controller, address _beneficiary) public {
+        token = SyncToken(_tokenAddress);
         controller = _controller;
         beneficiary = _beneficiary;
     }

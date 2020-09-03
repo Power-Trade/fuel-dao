@@ -8,7 +8,7 @@ contract VestingContractWithFixedTime is PowerTradeVestingContract {
 
     uint256 time;
 
-    constructor(SyncToken _token) PowerTradeVestingContract(_token) public {
+    constructor(IERC20 _token) PowerTradeVestingContract(_token) public {
         //
     }
 

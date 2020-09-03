@@ -1,21 +1,18 @@
 pragma solidity ^0.5.16;
 
-import "@openzeppelin/contracts/access/roles/WhitelistedRole.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "./Token.sol";
+import "./IERC20.sol";
 import "./VestingDepositAccount.sol";
 
 //TODO admin ability to transfer locked tokens
 
-contract PowerTradeVestingContract is WhitelistedRole, ReentrancyGuard {
+contract PowerTradeVestingContract is ReentrancyGuard {
     using SafeMath for uint256;
 
     event ScheduleCreated(
         address indexed _beneficiary,
-        uint256 indexed _amount,
-        uint256 indexed _start,
-        uint256 _duration
+        uint256 indexed _amount
     );
 
     event DrawDown(
@@ -24,61 +21,75 @@ contract PowerTradeVestingContract is WhitelistedRole, ReentrancyGuard {
         uint256 indexed _time
     );
 
-    struct Schedule {
+    struct ScheduleConfig {
         uint256 start;
         uint256 end;
         uint256 cliffDurationBeforeStart;
+    }
+
+    struct Schedule {
+        string scheduleConfigId;
         uint256 amount;
-        uint256 totalDrawn;
-        uint256 lastDrawnAt;
         uint256 drawDownRate;
         VestingDepositAccount depositAccount;
     }
 
-    // Vested address to its schedule
-    mapping(address => Schedule) public vestingSchedule;
+    address owner;
 
-    SyncToken public token;
+    // Vested address to its schedule
+    mapping(string => ScheduleConfig) public vestingScheduleConfigs;
+    mapping(address => Schedule) public vestingSchedule;
+    mapping(address => uint256) public totalDrawn;
+    mapping(address => uint256) public lastDrawnAt;
+
+    IERC20 public token;
 
     // All durations are based in number days
     uint256 public constant PERIOD_ONE_DAY_IN_SECONDS = 1 days;
 
-    constructor(SyncToken _token) public {
+    constructor(IERC20 _token) public {
         require(address(_token) != address(0));
         token = _token;
-        super.addWhitelisted(msg.sender);//TODO move into its own contract
+        owner = msg.sender;
     }
 
-    function createVestingSchedule(address _beneficiary, uint256 _amount, uint256 _start, uint256 _durationInDays, uint256 _cliffDurationBeforeStartInDays) onlyWhitelisted external returns (bool) {
+    function createVestingScheduleConfig(string calldata _scheduleConfigId, uint256 _start, uint256 _durationInDays, uint256 _cliffDurationBeforeStartInDays) external {
+        require(_durationInDays > 0, "Duration cannot be empty");
+        uint256 _durationInSecs = _durationInDays.mul(PERIOD_ONE_DAY_IN_SECONDS);
+        uint256 _cliffDurationInSecs = _cliffDurationBeforeStartInDays.mul(PERIOD_ONE_DAY_IN_SECONDS);
+        vestingScheduleConfigs[_scheduleConfigId] = ScheduleConfig({
+            start: _start,
+            end: _start.add(_durationInSecs),
+            cliffDurationBeforeStart: _cliffDurationInSecs
+        });
+    }
+
+    function createVestingSchedule(string calldata _scheduleConfigId, address _beneficiary, uint256 _amount) external returns (bool) {
         require(_beneficiary != address(0), "Beneficiary cannot be empty");
         require(_amount > 0, "Amount cannot be empty");
-        require(_durationInDays > 0, "Duration cannot be empty");
+
+        ScheduleConfig memory scheduleConfig = vestingScheduleConfigs[_scheduleConfigId];
+        require(scheduleConfig.start > 0, "References schedule configuration does not exist");
 
         // Ensure one per address
         require(vestingSchedule[_beneficiary].amount == 0, "Schedule already in flight");
 
         // Set up the vesting deposit account for the _beneficiary
         address self = address(this);
-        VestingDepositAccount depositAccount = new VestingDepositAccount(token, self, _beneficiary);
+        VestingDepositAccount depositAccount = new VestingDepositAccount(address(token), self, _beneficiary);
 
         // Create schedule
-        uint256 _durationInSecs = _durationInDays.mul(PERIOD_ONE_DAY_IN_SECONDS);
         vestingSchedule[_beneficiary] = Schedule({
-            start : _start,
-            end : _start.add(_durationInSecs),
-            cliffDurationBeforeStart : _cliffDurationBeforeStartInDays,
+            scheduleConfigId: _scheduleConfigId,
             amount : _amount,
-            totalDrawn : 0, // no tokens drawn yet
-            lastDrawnAt : 0, // never invoked
-            drawDownRate : _amount.div(_durationInSecs),
+            drawDownRate : _amount.div(scheduleConfig.end.sub(scheduleConfig.start)),
             depositAccount : depositAccount
         });
 
         // Vest the tokens into the deposit account and delegate to the beneficiary
         require(token.transferFrom(msg.sender, address(depositAccount), _amount), "Unable to transfer tokens to vesting deposit contract");
-        depositAccount.updateVotingDelegation(_beneficiary);
 
-        emit ScheduleCreated(_beneficiary, _amount, _start, _durationInDays);
+        emit ScheduleCreated(_beneficiary, _amount);
 
         return true;
     }
@@ -91,10 +102,10 @@ contract PowerTradeVestingContract is WhitelistedRole, ReentrancyGuard {
         require(amount > 0, "No allowance left to withdraw");
 
         // Update last drawn to now
-        schedule.lastDrawnAt = _getNow();
+        lastDrawnAt[msg.sender] = _getNow();
 
         // Increase total drawn amount
-        schedule.totalDrawn = schedule.totalDrawn.add(amount);
+        totalDrawn[msg.sender] = totalDrawn[msg.sender].add(amount);
 
         // Issue tokens to beneficiary
         require(schedule.depositAccount.drawDown(amount), "Unable to transfer tokens");
@@ -126,16 +137,15 @@ contract PowerTradeVestingContract is WhitelistedRole, ReentrancyGuard {
 
     function vestingScheduleForBeneficiary(address _beneficiary)
     external view
-    returns (uint256 _start, uint256 _end, uint256 _amount, uint256 _totalDrawn, uint256 _lastDrawnAt, uint256 _drawDownRate, uint256 _remainingBalance) {
+    returns (string memory _scheduleConfigId, uint256 _amount, uint256 _totalDrawn, uint256 _lastDrawnAt, uint256 _drawDownRate, uint256 _remainingBalance) {
         Schedule memory schedule = vestingSchedule[_beneficiary];
         return (
-        schedule.start,
-        schedule.end,
+        schedule.scheduleConfigId,
         schedule.amount,
-        schedule.totalDrawn,
-        schedule.lastDrawnAt,
+        totalDrawn[_beneficiary],
+        lastDrawnAt[_beneficiary],
         schedule.drawDownRate,
-        schedule.amount.sub(schedule.totalDrawn)
+        schedule.amount.sub(totalDrawn[_beneficiary])
         );
     }
 
@@ -143,25 +153,25 @@ contract PowerTradeVestingContract is WhitelistedRole, ReentrancyGuard {
         return _availableDrawDownAmount(_beneficiary);
     }
 
-    function scheduleStart(address _beneficiary) external view returns (uint256) {
-        return vestingSchedule[_beneficiary].start;
-    }
-
-    function scheduleEnd(address _beneficiary) external view returns (uint256) {
-        return vestingSchedule[_beneficiary].end;
-    }
+//    function scheduleStart(address _beneficiary) external view returns (uint256) {
+//        return vestingSchedule[_beneficiary].start;
+//    }
+//
+//    function scheduleEnd(address _beneficiary) external view returns (uint256) {
+//        return vestingSchedule[_beneficiary].end;
+//    }
 
     function scheduleTotalTokens(address _beneficiary) external view returns (uint256) {
         return vestingSchedule[_beneficiary].amount;
     }
 
-    function totalDrawn(address _beneficiary) external view returns (uint256) {
-        return vestingSchedule[_beneficiary].totalDrawn;
-    }
-
-    function lastDrawnAt(address _beneficiary) external view returns (uint256) {
-        return vestingSchedule[_beneficiary].lastDrawnAt;
-    }
+//    function totalDrawn(address _beneficiary) external view returns (uint256) {
+//        return totalDrawn[_beneficiary];
+//    }
+//
+//    function lastDrawnAt(address _beneficiary) external view returns (uint256) {
+//        return lastDrawnAt[_beneficiary];
+//    }
 
     function drawDownRate(address _beneficiary) external view returns (uint256) {
         return vestingSchedule[_beneficiary].drawDownRate;
@@ -169,7 +179,7 @@ contract PowerTradeVestingContract is WhitelistedRole, ReentrancyGuard {
 
     function remainingBalance(address _beneficiary) external view returns (uint256) {
         Schedule memory schedule = vestingSchedule[_beneficiary];
-        return schedule.amount.sub(schedule.totalDrawn);
+        return schedule.amount.sub(totalDrawn[_beneficiary]);
     }
 
     //////////////
@@ -182,7 +192,8 @@ contract PowerTradeVestingContract is WhitelistedRole, ReentrancyGuard {
 
     function _availableDrawDownAmount(address _beneficiary) internal view returns (uint256 _amount, uint256 _timeLastDrawn, uint256 _drawDownRate) {
         Schedule memory schedule = vestingSchedule[_beneficiary];
-        require(schedule.start <= _getNow(), "Schedule not started");
+        ScheduleConfig memory scheduleConfig = vestingScheduleConfigs[schedule.scheduleConfigId];
+        require(scheduleConfig.start <= _getNow(), "Schedule not started");
 
         ///////////////////////
         //TODO: Cliff Period //
@@ -196,9 +207,9 @@ contract PowerTradeVestingContract is WhitelistedRole, ReentrancyGuard {
         // Schedule complete //
         ///////////////////////
 
-        if (_getNow() > schedule.end) {
-            uint256 amount = schedule.amount.sub(schedule.totalDrawn);
-            return (amount, schedule.lastDrawnAt, 0);
+        if (_getNow() > scheduleConfig.end) {
+            uint256 amount = schedule.amount.sub(totalDrawn[_beneficiary]);
+            return (amount, lastDrawnAt[_beneficiary], 0);
         }
 
         ////////////////////////
@@ -206,7 +217,7 @@ contract PowerTradeVestingContract is WhitelistedRole, ReentrancyGuard {
         ////////////////////////
 
         // Work out when the last invocation was
-        uint256 timeLastDrawn = schedule.lastDrawnAt == 0 ? schedule.start : schedule.lastDrawnAt;
+        uint256 timeLastDrawn = lastDrawnAt[_beneficiary] == 0 ? scheduleConfig.start : lastDrawnAt[_beneficiary];
 
         // Find out how much time has past since last invocation
         uint256 timePassedSinceLastInvocation = _getNow().sub(timeLastDrawn);
