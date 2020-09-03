@@ -14,15 +14,6 @@ contract VestingDepositAccount {
         beneficiary = _beneficiary;
     }
 
-    function deposit(address _from, uint256 _amount) external {
-        require(msg.sender == controller);
-        address self = address(this);
-        require(token.transferFrom(_from, self, _amount), "Unable to transfer tokens to vesting deposit contract");
-
-        // Delegate all token voting power in this deposit account to the _beneficiary schedule
-        token.delegate(beneficiary);
-    }
-
     function sendAllTokensBackToController() external {
         require(msg.sender == controller);
         uint256 controllerBalance = token.balanceOf(address(this));

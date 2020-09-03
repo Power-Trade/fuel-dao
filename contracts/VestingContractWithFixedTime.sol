@@ -1,3 +1,5 @@
+// Used for testing
+
 pragma solidity ^0.5.12;
 
 import "./PowerTradeVestingContract.sol";

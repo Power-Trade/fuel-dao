@@ -72,12 +72,11 @@ contract PowerTradeVestingContract is WhitelistedRole, ReentrancyGuard {
             lastDrawnAt : 0, // never invoked
             drawDownRate : _amount.div(_durationInSecs),
             depositAccount : depositAccount
-            });
+        });
 
-        // Vest the tokens into the deposit account
-        token.transferFrom(msg.sender, self, _amount);
-        token.approve(address(depositAccount), _amount);
-        depositAccount.deposit(self, _amount);
+        // Vest the tokens into the deposit account and delegate to the beneficiary
+        require(token.transferFrom(msg.sender, address(depositAccount), _amount), "Unable to transfer tokens to vesting deposit contract");
+        depositAccount.updateVotingDelegation(_beneficiary);
 
         emit ScheduleCreated(_beneficiary, _amount, _start, _durationInDays);
 
