@@ -14,7 +14,7 @@ contract VestingDepositAccount {
         beneficiary = _beneficiary;
     }
 
-    function drawDown(uint256 _amount) external returns (bool) {
+    function transferToBeneficiary(uint256 _amount) external returns (bool) {
         require(msg.sender == controller, "Only the account controller can call drawDown()");
         return token.transfer(beneficiary, _amount);
     }

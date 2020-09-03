@@ -109,7 +109,7 @@ contract PowerTradeVestingContract is ReentrancyGuard {
         totalDrawn[msg.sender] = totalDrawn[msg.sender].add(amount);
 
         // Issue tokens to beneficiary
-        require(schedule.depositAccount.drawDown(amount), "Unable to transfer tokens");
+        require(schedule.depositAccount.transferToBeneficiary(amount), "Unable to transfer tokens");
 
         emit DrawDown(msg.sender, amount, _getNow());
 
