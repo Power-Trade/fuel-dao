@@ -15,12 +15,12 @@ contract VestingDepositAccount {
     }
 
     function transferToBeneficiary(uint256 _amount) external returns (bool) {
-        require(msg.sender == controller, "Only the controller can call drawDown()");
+        require(msg.sender == controller, "VestingDepositAccount::transferToBeneficiary: Only controller");
         return token.transfer(beneficiary, _amount);
     }
 
     function switchBeneficiary(address _newBeneficiary, uint256 _drawDownAmount) external {
-        require(msg.sender == controller, "Only the controller can call transferToBeneficiaryAndSwitchBeneficiary()");
+        require(msg.sender == controller, "VestingDepositAccount::switchBeneficiary: Only controller");
 
         if (_drawDownAmount > 0) {
             token.transfer(beneficiary, _drawDownAmount);
@@ -30,7 +30,7 @@ contract VestingDepositAccount {
     }
 
     function updateVotingDelegation(address _delegatee) external {
-        require(msg.sender == controller, "Only the controller can call updateVotingDelegation()");
+        require(msg.sender == controller, "VestingDepositAccount::updateVotingDelegation: Only controller");
         token.delegate(_delegatee);
     }
 }

@@ -45,8 +45,8 @@ contract VestingContract is ReentrancyGuard {
     }
 
     function createVestingScheduleConfig(string calldata _scheduleConfigId, uint256 _start, uint256 _durationInDays, uint256 _cliffDurationInDays) external {
-        require(msg.sender == owner, "Only the owner can set up schedule configs");
-        require(_durationInDays > 0, "Duration cannot be empty");
+        require(msg.sender == owner, "VestingContract::createVestingScheduleConfig: Only owner");
+        require(_durationInDays > 0, "VestingContract::createVestingScheduleConfig: Duration cannot be empty");
         uint256 _durationInSecs = _durationInDays.mul(PERIOD_ONE_DAY_IN_SECONDS);
         uint256 _cliffDurationInSecs = _cliffDurationInDays.mul(PERIOD_ONE_DAY_IN_SECONDS);
         vestingScheduleConfigs[_scheduleConfigId] = ScheduleConfig({
@@ -57,18 +57,17 @@ contract VestingContract is ReentrancyGuard {
     }
 
     function createVestingSchedule(string calldata _scheduleConfigId, address _beneficiary, uint256 _amount) external returns (bool) {
-        require(_beneficiary != address(0), "Beneficiary cannot be empty");
-        require(_amount > 0, "Amount cannot be empty");
+        require(_beneficiary != address(0), "VestingContract::createVestingSchedule: Beneficiary cannot be empty");
+        require(_amount > 0, "VestingContract::createVestingSchedule: Amount cannot be empty");
 
         ScheduleConfig memory scheduleConfig = vestingScheduleConfigs[_scheduleConfigId];
-        require(scheduleConfig.start > 0, "References schedule configuration does not exist");
+        require(scheduleConfig.start > 0, "VestingContract::createVestingSchedule: Schedule configuration does not exist");
 
         // Ensure one per address
-        require(vestingSchedule[_beneficiary].amount == 0, "Schedule already in flight");
+        require(vestingSchedule[_beneficiary].amount == 0, "VestingContract::createVestingSchedule: Schedule already in flight");
 
         // Set up the vesting deposit account for the _beneficiary
-        address self = address(this);
-        VestingDepositAccount depositAccount = new VestingDepositAccount(address(token), self, _beneficiary);
+        VestingDepositAccount depositAccount = new VestingDepositAccount(address(token), address(this), _beneficiary);
 
         // Create schedule
         vestingSchedule[_beneficiary] = Schedule({
@@ -79,7 +78,7 @@ contract VestingContract is ReentrancyGuard {
         });
 
         // Vest the tokens into the deposit account and delegate to the beneficiary
-        require(token.transferFrom(msg.sender, address(depositAccount), _amount), "Unable to transfer tokens to vesting deposit contract");
+        require(token.transferFrom(msg.sender, address(depositAccount), _amount), "VestingContract::createVestingSchedule: Unable to transfer tokens to VDA");
 
         emit ScheduleCreated(_beneficiary, _amount);
 
@@ -88,10 +87,10 @@ contract VestingContract is ReentrancyGuard {
 
     function drawDown() nonReentrant external returns (bool) {
         Schedule storage schedule = vestingSchedule[msg.sender];
-        require(schedule.amount > 0, "There is no schedule currently in flight");
+        require(schedule.amount > 0, "VestingContract::drawDown: There is no schedule currently in flight");
 
         (uint256 amount,,) = _availableDrawDownAmount(msg.sender);
-        require(amount > 0, "No allowance left to withdraw");
+        require(amount > 0, "VestingContract::drawDown: No allowance left to withdraw");
 
         // Update last drawn to now
         lastDrawnAt[msg.sender] = _getNow();
@@ -100,7 +99,7 @@ contract VestingContract is ReentrancyGuard {
         totalDrawn[msg.sender] = totalDrawn[msg.sender].add(amount);
 
         // Issue tokens to beneficiary
-        require(schedule.depositAccount.transferToBeneficiary(amount), "Unable to transfer tokens");
+        require(schedule.depositAccount.transferToBeneficiary(amount), "VestingContract::drawDown: Unable to transfer tokens");
 
         emit DrawDown(msg.sender, amount, _getNow());
 
@@ -110,13 +109,13 @@ contract VestingContract is ReentrancyGuard {
     // note only the beneficiary associated with a vesting schedule can claim voting rights
     function updateVotingDelegation(address _delegatee) external {
         Schedule storage schedule = vestingSchedule[msg.sender];
-        require(schedule.amount > 0, "There is no schedule currently in flight");
+        require(schedule.amount > 0, "VestingContract::updateVotingDelegation: There is no schedule currently in flight");
         schedule.depositAccount.updateVotingDelegation(_delegatee);
     }
 
     // transfer a schedule in tact to a new beneficiary (for pre-locked up schedules with no beneficiary)
     function updateScheduleBeneficiary(address _currentBeneficiary, address _newBeneficiary) external {
-        require(msg.sender == owner, "Only the owner can call updateBeneficiary()");
+        require(msg.sender == owner, "VestingContract::updateScheduleBeneficiary: Only owner");
         _updateScheduleBeneficiary(_currentBeneficiary, _newBeneficiary);
     }
 
@@ -164,7 +163,7 @@ contract VestingContract is ReentrancyGuard {
     function _updateScheduleBeneficiary(address _currentBeneficiary, address _newBeneficiary) internal {
         // retrieve existing schedule
         Schedule memory schedule = vestingSchedule[_currentBeneficiary];
-        require(schedule.amount > 0, "No schedule exists for current beneficiary");
+        require(schedule.amount > 0, "VestingContract::_updateScheduleBeneficiary: No schedule exists for current beneficiary");
 
         // transfer the schedule to the new beneficiary
         vestingSchedule[_newBeneficiary] = Schedule({
@@ -188,7 +187,7 @@ contract VestingContract is ReentrancyGuard {
     function _availableDrawDownAmount(address _beneficiary) internal view returns (uint256 _amount, uint256 _timeLastDrawn, uint256 _drawDownRate) {
         Schedule memory schedule = vestingSchedule[_beneficiary];
         ScheduleConfig memory scheduleConfig = vestingScheduleConfigs[schedule.scheduleConfigId];
-        require(scheduleConfig.start <= _getNow(), "Schedule not started");
+        require(scheduleConfig.start <= _getNow(), "VestingContract::_availableDrawDownAmount: Schedule not started");
 
         ///////////////////////
         // Cliff Period      //
