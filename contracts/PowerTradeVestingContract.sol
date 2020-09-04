@@ -133,11 +133,11 @@ contract PowerTradeVestingContract is ReentrancyGuard {
     ///////////////
 
     // for a given beneficiary
-    function tokenBalance() public view returns (uint256) {
-        return token.balanceOf(depositAccountAddress());
+    function tokenBalance() external view returns (uint256) {
+        return token.balanceOf(address(vestingSchedule[msg.sender].depositAccount));
     }
 
-    function depositAccountAddress() public view returns (address) {
+    function depositAccountAddress() external view returns (address) {
         Schedule memory schedule = vestingSchedule[msg.sender];
         return address(schedule.depositAccount);
     }
@@ -185,7 +185,7 @@ contract PowerTradeVestingContract is ReentrancyGuard {
         if (_amountToTransferToOriginalBeneficiary > 0) {
             vestingSchedule[_newBeneficiary].depositAccount.transferToBeneficiaryAndSwitchBeneficiary(_amountToTransferToOriginalBeneficiary, _newBeneficiary);
         } else {
-            vestingSchedule[_newBeneficiary].depositAccount.updateBeneficiary(_newBeneficiary);
+            vestingSchedule[_newBeneficiary].depositAccount.transferToBeneficiaryAndSwitchBeneficiary(0, _newBeneficiary);
         }
 
         // delete the link between the old beneficiary and the schedule
