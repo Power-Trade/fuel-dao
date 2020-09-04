@@ -19,11 +19,11 @@ contract VestingDepositAccount {
         return token.transfer(beneficiary, _amount);
     }
 
-    function transferToBeneficiaryAndSwitchBeneficiary(uint256 _amount, address _newBeneficiary) external {
+    function switchBeneficiary(address _newBeneficiary, uint256 _drawDownAmount) external {
         require(msg.sender == controller, "Only the controller can call transferToBeneficiaryAndSwitchBeneficiary()");
 
-        if (_amount > 0) {
-            token.transfer(beneficiary, _amount);
+        if (_drawDownAmount > 0) {
+            token.transfer(beneficiary, _drawDownAmount);
         }
 
         beneficiary = _newBeneficiary;

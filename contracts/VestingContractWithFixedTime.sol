@@ -2,13 +2,14 @@
 
 pragma solidity ^0.5.12;
 
-import "./PowerTradeVestingContract.sol";
+import "./VestingContract.sol";
 
-contract VestingContractWithFixedTime is PowerTradeVestingContract {
+// THIS IS A MOCK TEST CONTRACT - DO NOT AUDIT OR DEPLOY!
+contract VestingContractWithFixedTime is VestingContract {
 
     uint256 time;
 
-    constructor(IERC20 _token) PowerTradeVestingContract(_token) public {
+    constructor(IERC20 _token) VestingContract(_token) public {
         //
     }
 

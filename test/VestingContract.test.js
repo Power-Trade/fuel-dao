@@ -6,7 +6,7 @@ const { latest } = time
 require('chai').should()
 
 const VestingContract = artifacts.require('VestingContractWithFixedTime')
-const ActualVestingContract = artifacts.require('PowerTradeVestingContract')
+const ActualVestingContract = artifacts.require('VestingContract')
 const SyncToken = artifacts.require('SyncToken')
 
 contract('VestingContract', function ([_, admin, random, beneficiary1, beneficiary2, beneficiary3]) {
