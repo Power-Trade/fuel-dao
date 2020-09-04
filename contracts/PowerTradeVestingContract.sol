@@ -17,7 +17,7 @@ contract PowerTradeVestingContract is ReentrancyGuard {
     struct ScheduleConfig {
         uint256 start;
         uint256 end;
-        uint256 cliffDurationBeforeStart;
+        uint256 cliffDuration;
     }
 
     struct Schedule {
@@ -46,15 +46,15 @@ contract PowerTradeVestingContract is ReentrancyGuard {
         owner = msg.sender;
     }
 
-    function createVestingScheduleConfig(string calldata _scheduleConfigId, uint256 _start, uint256 _durationInDays, uint256 _cliffDurationBeforeStartInDays) external {
+    function createVestingScheduleConfig(string calldata _scheduleConfigId, uint256 _start, uint256 _durationInDays, uint256 _cliffDurationInDays) external {
         require(msg.sender == owner, "Only the owner can set up schedule configs");
         require(_durationInDays > 0, "Duration cannot be empty");
         uint256 _durationInSecs = _durationInDays.mul(PERIOD_ONE_DAY_IN_SECONDS);
-        uint256 _cliffDurationInSecs = _cliffDurationBeforeStartInDays.mul(PERIOD_ONE_DAY_IN_SECONDS);
+        uint256 _cliffDurationInSecs = _cliffDurationInDays.mul(PERIOD_ONE_DAY_IN_SECONDS);
         vestingScheduleConfigs[_scheduleConfigId] = ScheduleConfig({
             start: _start,
             end: _start.add(_durationInSecs),
-            cliffDurationBeforeStart: _cliffDurationInSecs
+            cliffDuration: _cliffDurationInSecs
         });
     }
 
@@ -203,12 +203,13 @@ contract PowerTradeVestingContract is ReentrancyGuard {
         require(scheduleConfig.start <= _getNow(), "Schedule not started");
 
         ///////////////////////
-        //TODO: Cliff Period //
+        // Cliff Period      //
         ///////////////////////
 
-//        if (schedule.cliffDurationBeforeStart > 0) {
-//
-//        }
+        if (_getNow() < scheduleConfig.start.add(scheduleConfig.cliffDuration)) {
+            // the cliff period has not ended, no tokens to draw down
+            return (0, lastDrawnAt[_beneficiary], 0);
+        }
 
         ///////////////////////
         // Schedule complete //
