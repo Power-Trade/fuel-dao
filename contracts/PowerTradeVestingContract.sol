@@ -109,11 +109,23 @@ contract PowerTradeVestingContract is ReentrancyGuard {
         return true;
     }
 
-    // note only the beneficiary can claim voting rights once setup
+    // note only the beneficiary associated with a vesting schedule can claim voting rights
     function updateVotingDelegation(address _delegatee) external {
         Schedule storage schedule = vestingSchedule[msg.sender];
         require(schedule.amount > 0, "There is no schedule currently in flight");
         schedule.depositAccount.updateVotingDelegation(_delegatee);
+    }
+
+    // transfer a schedule in tact to a new beneficiary (for pre-locked up schedules with no beneficiary)
+    function updateScheduleBeneficiary(address _currentBeneficiary, address _newBeneficiary) external {
+        require(msg.sender == owner, "Only the owner can call updateBeneficiary()");
+        _updateScheduleBeneficiary(_currentBeneficiary, _newBeneficiary, 0);
+    }
+
+    // transfer a schedule in tact to a new beneficiary but transfer an amount of tokens to the current registered beneficiary
+    function updateScheduleBeneficiary(address _currentBeneficiary, address _newBeneficiary, uint256 _amountToTransferToOriginalBeneficiary) external {
+        require(msg.sender == owner, "Only the owner can call updateBeneficiary()");
+        _updateScheduleBeneficiary(_currentBeneficiary, _newBeneficiary, _amountToTransferToOriginalBeneficiary);
     }
 
     ///////////////
@@ -156,6 +168,30 @@ contract PowerTradeVestingContract is ReentrancyGuard {
     //////////////
     // Internal //
     //////////////
+
+    function _updateScheduleBeneficiary(address _currentBeneficiary, address _newBeneficiary, uint256 _amountToTransferToOriginalBeneficiary) internal {
+        // retrieve existing schedule
+        Schedule memory schedule = vestingSchedule[_currentBeneficiary];
+        require(schedule.amount > 0, "No schedule exists for current beneficiary");
+
+        // transfer the schedule to the new beneficiary
+        vestingSchedule[_newBeneficiary] = Schedule({
+            scheduleConfigId: schedule.scheduleConfigId,
+            amount: schedule.amount,
+            drawDownRate: schedule.drawDownRate,
+            depositAccount: schedule.depositAccount
+            });
+
+        if (_amountToTransferToOriginalBeneficiary > 0) {
+            vestingSchedule[_newBeneficiary].depositAccount.transferToBeneficiaryAndSwitchBeneficiary(_amountToTransferToOriginalBeneficiary, _newBeneficiary);
+        } else {
+            vestingSchedule[_newBeneficiary].depositAccount.updateBeneficiary(_newBeneficiary);
+        }
+
+        // delete the link between the old beneficiary and the schedule
+        delete vestingSchedule[_currentBeneficiary];
+    }
+
 
     function _getNow() internal view returns (uint256) {
         return block.timestamp;
