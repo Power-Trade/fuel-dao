@@ -16,7 +16,6 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
     struct Schedule {
         uint256 end;
         uint256 amount;
-        uint256 drawDownRate;
         VestingDepositAccount depositAccount;
     }
 
@@ -70,7 +69,6 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         vestingSchedule[_beneficiary] = Schedule({
             end: end,
             amount : _amount,
-            drawDownRate : _amount.div(end.sub(start)),
             depositAccount : depositAccount
         });
 
@@ -117,7 +115,7 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         schedule.amount,
         totalDrawn[_beneficiary],
         lastDrawnAt[_beneficiary],
-        schedule.drawDownRate,
+        schedule.amount.div(schedule.end.sub(start)),
         schedule.amount.sub(totalDrawn[_beneficiary])
         );
     }
@@ -166,7 +164,6 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         vestingSchedule[_newBeneficiary] = Schedule({
             end: schedule.end,
             amount: schedule.amount.sub(totalDrawn[_currentBeneficiary]),
-            drawDownRate: schedule.drawDownRate,
             depositAccount: schedule.depositAccount
         });
 
@@ -221,8 +218,11 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         uint256 timePassedSinceLastInvocation = _getNow().sub(timeLastDrawn);
 
         // Work out how many due tokens - time passed * rate per second
-        uint256 amount = timePassedSinceLastInvocation.mul(schedule.drawDownRate);
+        uint256 drawDownRate = schedule.amount.div(schedule.end.sub(start));
+        uint256 amount = timePassedSinceLastInvocation.mul(drawDownRate);
 
-        return (amount, timeLastDrawn, schedule.drawDownRate);
+        require(amount <= schedule.amount.sub(totalDrawn[_beneficiary]), "VestingContract::_availableDrawDownAmount: Sanity check");
+
+        return (amount, timeLastDrawn, drawDownRate);
     }
 }
