@@ -80,6 +80,9 @@ contract VestingContract is ReentrancyGuard {
         // Vest the tokens into the deposit account and delegate to the beneficiary
         require(token.transferFrom(msg.sender, address(depositAccount), _amount), "VestingContract::createVestingSchedule: Unable to transfer tokens to VDA");
 
+        // ensure beneficiary has voting rights via delegate
+        _updateVotingDelegation(_beneficiary);
+
         emit ScheduleCreated(_beneficiary, _amount);
 
         return true;
@@ -104,13 +107,6 @@ contract VestingContract is ReentrancyGuard {
         emit DrawDown(msg.sender, amount, _getNow());
 
         return true;
-    }
-
-    // note only the beneficiary associated with a vesting schedule can claim voting rights
-    function updateVotingDelegation(address _delegatee) external {
-        Schedule storage schedule = vestingSchedule[msg.sender];
-        require(schedule.amount > 0, "VestingContract::updateVotingDelegation: There is no schedule currently in flight");
-        schedule.depositAccount.updateVotingDelegation(_delegatee);
     }
 
     // transfer a schedule in tact to a new beneficiary (for pre-locked up schedules with no beneficiary)
@@ -178,6 +174,13 @@ contract VestingContract is ReentrancyGuard {
 
         // delete the link between the old beneficiary and the schedule
         delete vestingSchedule[_currentBeneficiary];
+    }
+
+    // note only the beneficiary associated with a vesting schedule can claim voting rights
+    function _updateVotingDelegation(address _delegatee) internal {
+        Schedule storage schedule = vestingSchedule[_delegatee];
+        require(schedule.amount > 0, "VestingContract::_updateVotingDelegation: There is no schedule currently in flight");
+        schedule.depositAccount.updateVotingDelegation(_delegatee);
     }
 
     function _getNow() internal view returns (uint256) {
