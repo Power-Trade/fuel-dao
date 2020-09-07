@@ -157,7 +157,7 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
 
     function _updateScheduleBeneficiary(address _currentBeneficiary, address _newBeneficiary) internal {
         // retrieve existing schedule
-        Schedule memory schedule = vestingSchedule[_currentBeneficiary];
+        Schedule storage schedule = vestingSchedule[_currentBeneficiary];
         require(schedule.amount > 0, "VestingContract::_updateScheduleBeneficiary: No schedule exists for current beneficiary");
 
         require(_drawDown(_currentBeneficiary), "VestingContract::_updateScheduleBeneficiary: Unable to drawn down");
@@ -172,8 +172,9 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
 
         vestingSchedule[_newBeneficiary].depositAccount.switchBeneficiary(_newBeneficiary);
 
-        // delete the link between the old beneficiary and the schedule
-        delete vestingSchedule[_currentBeneficiary];
+        // close down the old schedule by setting amount to drawn and ending
+        schedule.amount = totalDrawn[_currentBeneficiary];
+        schedule.end = _getNow();
     }
 
     // note only the beneficiary associated with a vesting schedule can claim voting rights

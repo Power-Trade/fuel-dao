@@ -99,7 +99,7 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
                 );
             });
 
-            it('trying to update schedule benefiary when not owner', async () => {
+            it('trying to update schedule beneficiary when not owner', async () => {
                 await givenAVestingSchedule(fromAdmin);
                 await expectRevert(
                     this.vestingContract.updateScheduleBeneficiary(beneficiary1, beneficiary2, fromRandom),
