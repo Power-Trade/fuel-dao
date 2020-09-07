@@ -13,7 +13,6 @@ const SyncToken = artifacts.require('SyncToken');
 contract('VestingContract', function ([_, admin, random, beneficiary1, beneficiary2, beneficiary3]) {
     const DECIMALS = 18;
     const TEN_BILLION = new BN(10000000);
-    const FIFTY_BILLION = new BN(50000000000);
     const INITIAL_SUPPLY = TEN_BILLION.mul(new BN(10).pow(new BN(DECIMALS)));
 
     const TEN_THOUSAND_TOKENS = new BN(10000).mul(new BN(10).pow(new BN(DECIMALS)));
@@ -30,12 +29,6 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
     const _100days = 100;
     const _7days = 7;
     const _10days = 10;
-
-
-    const SCHEDULE_1_ID = 'schedule_1';
-    const SCHEDULE_2_ID = 'schedule_2';
-    const SCHEDULE_3_ID = 'schedule_3';
-    const SCHEDULE_4_ID = 'schedule_4';
 
     const fromAdmin = {from: admin};
     const fromRandom = {from: random};
@@ -59,8 +52,7 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
         vestingAllowance.should.be.bignumber.equal(INITIAL_SUPPLY);
 
         // set up a default schedule config
-        await this.vestingContract.createVestingScheduleConfig(
-            SCHEDULE_1_ID,
+        await this.vestingContract.init(
             moment.unix(await latest()).add(1, 'day').unix().valueOf(),
             new BN(_10days).mul(PERIOD_ONE_DAY_IN_SECONDS),
             0,
@@ -143,8 +135,7 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
             it('the allowance for a particular second has been exceeded (two calls in the same block scenario)', async () => {
                 this.now = moment.unix(await latest()).valueOf();
 
-                await this.vestingContract.createVestingScheduleConfig(
-                    SCHEDULE_2_ID,
+                await this.vestingContract.init(
                     this.now,
                     new BN(_10days).mul(PERIOD_ONE_DAY_IN_SECONDS),
                     0,
@@ -152,7 +143,6 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
                 );
 
                 await givenAVestingSchedule({
-                    scheduleConfigId: SCHEDULE_2_ID,
                     ...fromAdmin
                 });
 
@@ -176,8 +166,7 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
         beforeEach(async () => {
             this.now = moment.unix(await latest()).add(1, 'day').unix().valueOf();
 
-            await this.vestingContract.createVestingScheduleConfig(
-                SCHEDULE_2_ID,
+            await this.vestingContract.init(
                 this.now,
                 new BN(_10days).mul(PERIOD_ONE_DAY_IN_SECONDS),
                 0,
@@ -186,7 +175,6 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
 
             await this.vestingContract.fixTime(this.now);
             this.transaction = await givenAVestingSchedule({
-                scheduleConfigId: SCHEDULE_2_ID,
                 ...fromAdmin
             });
         });
@@ -435,8 +423,7 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
             this.now = await latest();
             this.onyDayFromNow = moment.unix(this.now).add(1, 'days').unix().valueOf();
 
-            await this.vestingContract.createVestingScheduleConfig(
-                SCHEDULE_2_ID,
+            await this.vestingContract.init(
                 this.onyDayFromNow,
                 new BN(_7days).mul(PERIOD_ONE_DAY_IN_SECONDS),
                 0,
@@ -444,7 +431,6 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
             );
 
             await givenAVestingSchedule({
-                scheduleConfigId: SCHEDULE_2_ID,
                 amount: FIVE_THOUSAND_TOKENS,
                 ...fromAdmin
             });
@@ -488,8 +474,7 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
             this.now = moment.unix(await latest()).unix().valueOf();
             await this.vestingContract.fixTime(this.now);
 
-            await this.vestingContract.createVestingScheduleConfig(
-                SCHEDULE_2_ID,
+            await this.vestingContract.init(
                 this.now,
                 new BN(_10days).mul(PERIOD_ONE_DAY_IN_SECONDS),
                 0,
@@ -497,7 +482,6 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
             );
 
             this.transaction = await givenAVestingSchedule({
-                scheduleConfigId: SCHEDULE_2_ID,
                 ...fromAdmin
             });
 
@@ -522,8 +506,7 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
         beforeEach(async () => {
             this.now = moment.unix(await latest()).unix().valueOf();
 
-            await this.vestingContract.createVestingScheduleConfig(
-                SCHEDULE_2_ID,
+            await this.vestingContract.init(
                 this.now,
                 new BN(_100days).mul(PERIOD_ONE_DAY_IN_SECONDS),
                 0,
@@ -531,7 +514,6 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
             );
 
             this.transaction = await givenAVestingSchedule({
-                scheduleConfigId: SCHEDULE_2_ID,
                 ...fromAdmin,
                 beneficiary: beneficiary1,
                 amount: _3333_THOUSAND_TOKENS
@@ -634,329 +616,6 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
         });
     });
 
-    describe.skip('multiple schedules', async () => {
-        beforeEach(async () => {
-            this.now = moment.unix(await latest()).unix().valueOf();
-
-            await this.vestingContract.createVestingScheduleConfig(
-                SCHEDULE_2_ID,
-                this.now,
-                new BN(_10days).mul(PERIOD_ONE_DAY_IN_SECONDS),
-                0,
-                fromAdmin
-            );
-
-            await givenAVestingSchedule({
-                scheduleConfigId: SCHEDULE_2_ID,
-                ...fromAdmin,
-                beneficiary: beneficiary1,
-                amount: _3333_THOUSAND_TOKENS
-            });
-
-            this._1DayInTheFuture = moment.unix(this.now).add(1, 'day').unix().valueOf();
-
-            await this.vestingContract.createVestingScheduleConfig(
-                SCHEDULE_3_ID,
-                this._1DayInTheFuture,
-                new BN(_100days).mul(PERIOD_ONE_DAY_IN_SECONDS),
-                0,
-                fromAdmin
-            );
-
-            await givenAVestingSchedule({
-                scheduleConfigId: SCHEDULE_3_ID,
-                ...fromAdmin,
-                beneficiary: beneficiary2,
-                amount: TEN_THOUSAND_TOKENS
-            });
-
-            this._3DayInTheFuture = moment.unix(this.now).add(3, 'day').unix().valueOf();
-
-            await this.vestingContract.createVestingScheduleConfig(
-                SCHEDULE_4_ID,
-                this._3DayInTheFuture,
-                new BN(_7days).mul(PERIOD_ONE_DAY_IN_SECONDS),
-                0,
-                fromAdmin
-            );
-
-            await givenAVestingSchedule({
-                scheduleConfigId: SCHEDULE_4_ID,
-                ...fromAdmin,
-                beneficiary: beneficiary3,
-                amount: FIVE_THOUSAND_TOKENS
-            });
-            await this.vestingContract.fixTime(this.now);
-        });
-
-        it('schedule 1 setup correctly', async () => {
-            const totalDuration = new BN(`${_10days}`).mul(PERIOD_ONE_DAY_IN_SECONDS);
-
-            await validateVestingScheduleForBeneficiary(beneficiary1, {
-                start: this.now.toString(),
-                end: moment.unix(this.now).add(_10days, 'day').unix().valueOf().toString(),
-                amount: _3333_THOUSAND_TOKENS,
-                totalDrawn: '0',
-                lastDrawnAt: '',
-                drawDownRate: _3333_THOUSAND_TOKENS.div(totalDuration),
-                remainingBalance: _3333_THOUSAND_TOKENS
-            });
-
-            await validateAvailableDrawDownAmount(beneficiary1, {
-                amount: '0',
-                timeLastDrawn: this.now.toString(), // defaults to start date if not drawn down anything
-                drawDownRate: _3333_THOUSAND_TOKENS.div(totalDuration)
-            });
-
-            (await this.token.balanceOf(beneficiary1)).should.be.bignumber.equal('0');
-        });
-
-        it('schedule 2 setup correctly', async () => {
-            const totalDuration = new BN(`${_100days}`).mul(PERIOD_ONE_DAY_IN_SECONDS);
-
-            await validateVestingScheduleForBeneficiary(beneficiary2, {
-                start: this._1DayInTheFuture.toString(),
-                end: addDaysToTime(this._1DayInTheFuture, 100),
-                amount: TEN_THOUSAND_TOKENS,
-                totalDrawn: '0',
-                lastDrawnAt: '',
-                drawDownRate: TEN_THOUSAND_TOKENS.div(totalDuration),
-                remainingBalance: TEN_THOUSAND_TOKENS
-            });
-
-            // reverts as not started yet
-            await expectRevert(
-                this.vestingContract.availableDrawDownAmount(beneficiary2),
-                'Schedule not started'
-            );
-
-            (await this.token.balanceOf(beneficiary2)).should.be.bignumber.equal('0');
-        });
-
-        it('schedule 3 setup correctly', async () => {
-            const totalDuration = new BN(`${_7days}`).mul(PERIOD_ONE_DAY_IN_SECONDS);
-
-            await validateVestingScheduleForBeneficiary(beneficiary3, {
-                start: this._3DayInTheFuture.toString(),
-                end: moment.unix(this._3DayInTheFuture).add(_7days, 'day').unix().valueOf().toString(),
-                amount: FIVE_THOUSAND_TOKENS,
-                totalDrawn: '0',
-                lastDrawnAt: '',
-                drawDownRate: FIVE_THOUSAND_TOKENS.div(totalDuration),
-                remainingBalance: FIVE_THOUSAND_TOKENS
-            });
-
-            // reverts as not started yet
-            await expectRevert(
-                this.vestingContract.availableDrawDownAmount(beneficiary3),
-                'Schedule not started'
-            );
-
-            (await this.token.balanceOf(beneficiary3)).should.be.bignumber.equal('0');
-        });
-
-        describe('2 days in the future', async () => {
-            beforeEach(async () => {
-                this._2DaysInTheFuture = moment.unix(this.now).add(2, 'days').unix().valueOf();
-                await this.vestingContract.fixTime(this._2DaysInTheFuture);
-            });
-
-            describe('schedule 1 & 2 can be drawn down', async () => {
-                beforeEach(async () => {
-                    await this.vestingContract.drawDown({from: beneficiary1});
-                    await this.vestingContract.drawDown({from: beneficiary2});
-                });
-
-                it('beneficiary 1 has valid number of issued tokens', async () => {
-                    const totalDuration = new BN(`${_10days}`).mul(PERIOD_ONE_DAY_IN_SECONDS);
-                    const timePassed = new BN('2').mul(PERIOD_ONE_DAY_IN_SECONDS);
-                    const lastDrawnAt = this._2DaysInTheFuture.toString();
-                    const drawDownRate = _3333_THOUSAND_TOKENS.div(totalDuration);
-                    const totalDrawn = drawDownRate.mul(new BN(timePassed));
-
-                    // Check beneficiary schedule correct
-                    await validateVestingScheduleForBeneficiary(beneficiary1, {
-                        start: this.now.toString(),
-                        end: moment.unix(this.now).add(_10days, 'day').unix().valueOf().toString(),
-                        amount: _3333_THOUSAND_TOKENS,
-                        totalDrawn: totalDrawn,
-                        lastDrawnAt: lastDrawnAt,
-                        drawDownRate: drawDownRate,
-                        remainingBalance: _3333_THOUSAND_TOKENS.sub(
-                            totalDrawn
-                        )
-                    });
-
-                    // Check beneficiary balance correct
-                    (await this.token.balanceOf(beneficiary1)).should.be.bignumber.equal(totalDrawn);
-                });
-
-                it('beneficiary 2 has valid number of issued tokens', async () => {
-                    const totalDuration = new BN(`${_100days}`).mul(PERIOD_ONE_DAY_IN_SECONDS);
-                    const timePassed = new BN('1').mul(PERIOD_ONE_DAY_IN_SECONDS);
-                    const lastDrawnAt = this._2DaysInTheFuture.toString();
-                    const drawDownRate = TEN_THOUSAND_TOKENS.div(totalDuration);
-                    const totalDrawn = drawDownRate.mul(new BN(timePassed));
-
-                    // Check beneficiary schedule correct
-                    await validateVestingScheduleForBeneficiary(beneficiary2, {
-                        start: this._1DayInTheFuture.toString(),
-                        end: addDaysToTime(this._1DayInTheFuture, 100),
-                        amount: TEN_THOUSAND_TOKENS,
-                        totalDrawn: totalDrawn,
-                        lastDrawnAt: lastDrawnAt,
-                        drawDownRate: drawDownRate,
-                        remainingBalance: TEN_THOUSAND_TOKENS.sub(
-                            totalDrawn
-                        )
-                    });
-
-                    // Check beneficiary balance correct
-                    (await this.token.balanceOf(beneficiary2)).should.be.bignumber.equal(totalDrawn);
-                });
-
-                it('vesting contract balances correctly marry up', async () => {
-                    const schedule1DrawDown = _3333_THOUSAND_TOKENS
-                        .div(
-                            new BN(`${_10days}`).mul(PERIOD_ONE_DAY_IN_SECONDS) // total duration
-                        ).mul(
-                            new BN('2').mul(PERIOD_ONE_DAY_IN_SECONDS) // time passed
-                        );
-
-                    const schedule2DrawDown = TEN_THOUSAND_TOKENS
-                        .div(
-                            new BN(`${_100days}`).mul(PERIOD_ONE_DAY_IN_SECONDS) // total duration
-                        ).mul(
-                            new BN('1').mul(PERIOD_ONE_DAY_IN_SECONDS) // time passed
-                        );
-
-                    const beneficiary1RemainingBalance = await this.vestingContract.tokenBalance({from: beneficiary1});
-                    beneficiary1RemainingBalance.should.be.bignumber.equal(_3333_THOUSAND_TOKENS.sub(schedule1DrawDown));
-
-                    const beneficiary2RemainingBalance = await this.vestingContract.tokenBalance({from: beneficiary2});
-                    beneficiary2RemainingBalance.should.be.bignumber.equal(TEN_THOUSAND_TOKENS.sub(schedule2DrawDown));
-                });
-            });
-
-            describe('11 days in the future', async () => {
-                beforeEach(async () => {
-                    this._11DaysInTheFuture = moment.unix(this.now).add(11, 'days').unix().valueOf();
-                    await this.vestingContract.fixTime(this._11DaysInTheFuture);
-                });
-
-                beforeEach(async () => {
-                    await this.vestingContract.drawDown({from: beneficiary1});
-                    await this.vestingContract.drawDown({from: beneficiary2});
-                    await this.vestingContract.drawDown({from: beneficiary3});
-                });
-
-                it('beneficiary 1 drawn down complete', async () => {
-                    const totalDuration = new BN(`${_10days}`).mul(PERIOD_ONE_DAY_IN_SECONDS);
-
-                    // Check beneficiary schedule correct
-                    await validateVestingScheduleForBeneficiary(beneficiary1, {
-                        start: this.now.toString(),
-                        end: moment.unix(this.now).add(_10days, 'day').unix().valueOf().toString(),
-                        amount: _3333_THOUSAND_TOKENS,
-                        totalDrawn: _3333_THOUSAND_TOKENS,
-                        lastDrawnAt: this._11DaysInTheFuture.toString(),
-                        drawDownRate: _3333_THOUSAND_TOKENS.div(totalDuration),
-                        remainingBalance: '0'
-                    });
-
-                    // Check beneficiary balance correct
-                    (await this.token.balanceOf(beneficiary1)).should.be.bignumber.equal(_3333_THOUSAND_TOKENS);
-                });
-
-                it('beneficiary 2 in flight', async () => {
-                    const totalDuration = new BN(`${_100days}`).mul(PERIOD_ONE_DAY_IN_SECONDS);
-                    const timePassed = new BN('10').mul(PERIOD_ONE_DAY_IN_SECONDS);
-                    const drawDownRate = TEN_THOUSAND_TOKENS.div(totalDuration);
-                    const totalDrawn = drawDownRate.mul(new BN(timePassed));
-
-                    // Check beneficiary schedule correct
-                    await validateVestingScheduleForBeneficiary(beneficiary2, {
-                        start: this._1DayInTheFuture.toString(),
-                        end: addDaysToTime(this._1DayInTheFuture, 100),
-                        amount: TEN_THOUSAND_TOKENS,
-                        totalDrawn: totalDrawn,
-                        lastDrawnAt: this._11DaysInTheFuture.toString(),
-                        drawDownRate: drawDownRate,
-                        remainingBalance: TEN_THOUSAND_TOKENS.sub(
-                            totalDrawn
-                        )
-                    });
-
-                    // Check beneficiary balance correct
-                    (await this.token.balanceOf(beneficiary2)).should.be.bignumber.equal(totalDrawn);
-                });
-
-                it('beneficiary 3 drawn down complete', async () => {
-                    const totalDuration = new BN(`${_7days}`).mul(PERIOD_ONE_DAY_IN_SECONDS);
-
-                    // Check beneficiary schedule correct
-                    await validateVestingScheduleForBeneficiary(beneficiary3, {
-                        start: this._3DayInTheFuture.toString(),
-                        end: moment.unix(this._3DayInTheFuture).add(_7days, 'day').unix().valueOf().toString(),
-                        amount: FIVE_THOUSAND_TOKENS,
-                        totalDrawn: FIVE_THOUSAND_TOKENS,
-                        lastDrawnAt: this._11DaysInTheFuture.toString(),
-                        drawDownRate: FIVE_THOUSAND_TOKENS.div(totalDuration),
-                        remainingBalance: '0'
-                    });
-
-                    // Check beneficiary balance correct
-                    (await this.token.balanceOf(beneficiary3)).should.be.bignumber.equal(FIVE_THOUSAND_TOKENS);
-                });
-
-                it('vesting contract balances correctly marry up', async () => {
-                    const schedule2DrawDown = TEN_THOUSAND_TOKENS.div(
-                        new BN(`${_100days}`).mul(PERIOD_ONE_DAY_IN_SECONDS) // total drawn down
-                    ).mul(
-                        new BN('10').mul(PERIOD_ONE_DAY_IN_SECONDS) // time passed
-                    );
-
-                    const beneficiary2RemainingBalance = await this.vestingContract.tokenBalance({from: beneficiary2});
-                    beneficiary2RemainingBalance.should.be.bignumber.equal(TEN_THOUSAND_TOKENS.sub(schedule2DrawDown));
-                });
-
-                it('beneficiary 1 cannot drawn down anymore', async () => {
-                    await expectRevert(
-                        this.vestingContract.drawDown({from: beneficiary1}),
-                        'No allowance left to withdraw'
-                    );
-                    (await this.token.balanceOf(beneficiary1)).should.be.bignumber.equal(_3333_THOUSAND_TOKENS);
-                });
-
-                it('beneficiary 2 has remaining balance', async () => {
-                    const totalDuration = new BN(`${_100days}`).mul(PERIOD_ONE_DAY_IN_SECONDS);
-                    const timePassed = new BN('10').mul(PERIOD_ONE_DAY_IN_SECONDS);
-                    const drawDownRate = TEN_THOUSAND_TOKENS.div(totalDuration);
-                    const totalDrawn = drawDownRate.mul(new BN(timePassed));
-
-                    const scheduleRemainingBalance = await this.vestingContract.remainingBalance(beneficiary2);
-                    scheduleRemainingBalance.should.be.bignumber.eq(TEN_THOUSAND_TOKENS.sub(
-                        totalDrawn
-                    ));
-
-                    await validateAvailableDrawDownAmount(beneficiary2, {
-                        amount: '0', // no more left to draw dome immediately
-                        timeLastDrawn: this._11DaysInTheFuture.toString(),
-                        drawDownRate: drawDownRate
-                    });
-                });
-
-                it('beneficiary 3 cannot drawn down anymore', async () => {
-                    await expectRevert(
-                        this.vestingContract.drawDown({from: beneficiary3}),
-                        'No allowance left to withdraw'
-                    );
-                    (await this.token.balanceOf(beneficiary3)).should.be.bignumber.equal(FIVE_THOUSAND_TOKENS);
-                });
-            });
-        });
-    });
-
     describe('VestingContract', async () => {
         beforeEach(async () => {
             this.vestingContract = await ActualVestingContract.new(this.token.address, this.baseDepositAccount.address, fromAdmin);
@@ -972,7 +631,6 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
 
     const generateDefaultVestingSchedule = async () => {
         return {
-            scheduleConfigId: SCHEDULE_1_ID,
             beneficiary: beneficiary1,
             amount: TEN_THOUSAND_TOKENS
         };
@@ -988,9 +646,8 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
 
     const givenAVestingSchedule = async (options) => {
         const defaultVestingSchedule = await generateDefaultVestingSchedule();
-        const {beneficiary, amount, scheduleConfigId} = applyOptions(options, defaultVestingSchedule);
+        const {beneficiary, amount} = applyOptions(options, defaultVestingSchedule);
         return this.vestingContract.createVestingSchedule(
-            scheduleConfigId,
             beneficiary,
             amount,
             {from: options.from}

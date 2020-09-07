@@ -14,6 +14,7 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
     event DrawDown(address indexed _beneficiary, uint256 indexed _amount, uint256 indexed _time);
 
     struct Schedule {
+        uint256 end;
         uint256 amount;
         uint256 drawDownRate;
         VestingDepositAccount depositAccount;
@@ -31,7 +32,7 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
     address public baseVestingDepositAccount;
 
     uint256 public start;
-    uint256 public end;
+    uint256 public durationInSecs;
     uint256 public cliffDuration;
 
     constructor(IERC20 _token, address _baseVestingDepositAccount) public {
@@ -41,16 +42,16 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         baseVestingDepositAccount = _baseVestingDepositAccount;
     }
 
-    function createVestingScheduleConfig(string calldata _scheduleConfigId, uint256 _start, uint256 _durationInSecs, uint256 _cliffDurationInSecs) external {
+    function init(uint256 _start, uint256 _durationInSecs, uint256 _cliffDurationInSecs) external {
         require(msg.sender == owner, "VestingContract::createVestingScheduleConfig: Only owner");
         require(_durationInSecs > 0, "VestingContract::createVestingScheduleConfig: Duration cannot be empty");
 
         start = _start;
-        end = _start.add(_durationInSecs);
+        durationInSecs = _durationInSecs;
         cliffDuration = _cliffDurationInSecs;
     }
 
-    function createVestingSchedule(string calldata _scheduleConfigId, address _beneficiary, uint256 _amount) external returns (bool) {
+    function createVestingSchedule(address _beneficiary, uint256 _amount) external returns (bool) {
         require(_beneficiary != address(0), "VestingContract::createVestingSchedule: Beneficiary cannot be empty");
         require(_amount > 0, "VestingContract::createVestingSchedule: Amount cannot be empty");
 
@@ -65,7 +66,9 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         depositAccount.init(address(token), address(this), _beneficiary);
 
         // Create schedule
+        uint256 end = start.add(durationInSecs);
         vestingSchedule[_beneficiary] = Schedule({
+            end: end,
             amount : _amount,
             drawDownRate : _amount.div(end.sub(start)),
             depositAccount : depositAccount
@@ -161,10 +164,11 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
 
         // transfer the schedule to the new beneficiary
         vestingSchedule[_newBeneficiary] = Schedule({
+            end: schedule.end,
             amount: schedule.amount.sub(totalDrawn[_currentBeneficiary]),
             drawDownRate: schedule.drawDownRate,
             depositAccount: schedule.depositAccount
-            });
+        });
 
         vestingSchedule[_newBeneficiary].depositAccount.switchBeneficiary(_newBeneficiary);
 
@@ -200,7 +204,7 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         // Schedule complete //
         ///////////////////////
 
-        if (_getNow() > end) {
+        if (_getNow() > schedule.end) {
             uint256 amount = schedule.amount.sub(totalDrawn[_beneficiary]);
             return (amount, lastDrawnAt[_beneficiary], 0);
         }
