@@ -42,9 +42,46 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
 
         // Construct new vesting contract
         this.baseDepositAccount = await VestingDepositAccount.new(fromAdmin);
-        this.vestingContract = await VestingContract.new(this.token.address, this.baseDepositAccount.address, fromAdmin);
 
-        this.now = moment.unix(await latest()).unix().valueOf();
+        // this.vestingContract = await VestingContract.new(
+        //   this.token.address,
+        //   this.baseDepositAccount.address,
+        //   moment.unix(await latest()).add(1, 'day').unix().valueOf(),
+        //   new BN(_10days).mul(PERIOD_ONE_DAY_IN_SECONDS),
+        //   0,
+        //   fromAdmin
+        // );
+        //
+        // this.now = moment.unix(await latest()).unix().valueOf();
+        // await this.vestingContract.fixTime(this.now);
+        //
+        // // Ensure vesting contract approved to move tokens
+        // await this.token.approve(this.vestingContract.address, INITIAL_SUPPLY, fromAdmin);
+        //
+        // // Ensure allowance set for vesting contract
+        // const vestingAllowance = await this.token.allowance(admin, this.vestingContract.address);
+        // vestingAllowance.should.be.bignumber.equal(INITIAL_SUPPLY);
+
+        // // set up a default schedule config
+        // await this.vestingContract.init(
+        //     moment.unix(await latest()).add(1, 'day').unix().valueOf(),
+        //     new BN(_10days).mul(PERIOD_ONE_DAY_IN_SECONDS),
+        //     0,
+        //     fromAdmin
+        // );
+    });
+
+    const createNewVestingContract = async ({_start, _durationInSecs, _cliffDurationInSecs}) => {
+        this.now = _start;
+        this.vestingContract = await VestingContract.new(
+          this.token.address,
+          this.baseDepositAccount.address,
+          _start,
+          _durationInSecs,
+          _cliffDurationInSecs,
+          fromAdmin
+        );
+
         await this.vestingContract.fixTime(this.now);
 
         // Ensure vesting contract approved to move tokens
@@ -53,15 +90,7 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
         // Ensure allowance set for vesting contract
         const vestingAllowance = await this.token.allowance(admin, this.vestingContract.address);
         vestingAllowance.should.be.bignumber.equal(INITIAL_SUPPLY);
-
-        // set up a default schedule config
-        await this.vestingContract.init(
-            moment.unix(await latest()).add(1, 'day').unix().valueOf(),
-            new BN(_10days).mul(PERIOD_ONE_DAY_IN_SECONDS),
-            0,
-            fromAdmin
-        );
-    });
+    }
 
     it('should return token address', async () => {
         const token = await this.vestingContract.token();
@@ -167,18 +196,24 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
 
     describe.only('single schedule - incomplete draw down', async () => {
         beforeEach(async () => {
-            this.now = moment.unix(await latest()).add(1, 'day').unix().valueOf();
+            // Current time
+            this.now = moment.unix(await latest()).unix().valueOf();
 
-            await this.vestingContract.init(
-                this.now,
-                new BN(_10days).mul(PERIOD_ONE_DAY_IN_SECONDS),
-                0,
-                fromAdmin
-            );
+            // create schedule - starting in 1 day, going for 10 days
+            let start = moment.unix(await latest()).add(1, 'day').unix().valueOf();
+            await createNewVestingContract({
+              _start:  start,
+              _durationInSecs: new BN(_10days).mul(PERIOD_ONE_DAY_IN_SECONDS),
+              _cliffDurationInSecs: 0
+            });
 
+            // move time to start time
+            this.now = start;
             await this.vestingContract.fixTime(this.now);
+
+            // setup schedule
             this.transaction = await givenAVestingSchedule({
-                ...fromAdmin
+              ...fromAdmin
             });
         });
 

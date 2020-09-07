@@ -34,21 +34,33 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
     uint256 public durationInSecs;
     uint256 public cliffDuration;
 
-    constructor(IERC20 _token, address _baseVestingDepositAccount) public {
+    constructor(
+        IERC20 _token,
+        address _baseVestingDepositAccount,
+        uint256 _start,
+        uint256 _durationInSecs,
+        uint256 _cliffDurationInSecs
+    ) public {
         require(address(_token) != address(0));
+        require(_durationInSecs > 0, "VestingContract::createVestingScheduleConfig: Duration cannot be empty");
+
         token = _token;
         owner = msg.sender;
         baseVestingDepositAccount = _baseVestingDepositAccount;
-    }
-
-    function init(uint256 _start, uint256 _durationInSecs, uint256 _cliffDurationInSecs) external {
-        require(msg.sender == owner, "VestingContract::createVestingScheduleConfig: Only owner");
-        require(_durationInSecs > 0, "VestingContract::createVestingScheduleConfig: Duration cannot be empty");
 
         start = _start;
         durationInSecs = _durationInSecs;
         cliffDuration = _cliffDurationInSecs;
     }
+
+//    function init(uint256 _start, uint256 _durationInSecs, uint256 _cliffDurationInSecs) external {
+//        require(msg.sender == owner, "VestingContract::createVestingScheduleConfig: Only owner");
+//        require(_durationInSecs > 0, "VestingContract::createVestingScheduleConfig: Duration cannot be empty");
+//
+//        start = _start;
+//        durationInSecs = _durationInSecs;
+//        cliffDuration = _cliffDurationInSecs;
+//    }
 
     function createVestingSchedule(address _beneficiary, uint256 _amount) external returns (bool) {
         require(_beneficiary != address(0), "VestingContract::createVestingSchedule: Beneficiary cannot be empty");
