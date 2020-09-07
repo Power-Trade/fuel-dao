@@ -165,7 +165,7 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
 
     });
 
-    describe('single schedule - incomplete draw down', async () => {
+    describe.only('single schedule - incomplete draw down', async () => {
         beforeEach(async () => {
             this.now = moment.unix(await latest()).add(1, 'day').unix().valueOf();
 
@@ -204,8 +204,6 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
             expectEvent(this.transaction, 'ScheduleCreated', {
                 _beneficiary: beneficiary1,
                 _amount: TEN_THOUSAND_TOKENS.toString(),
-                //_start: this.now.toString(),
-                //_duration: _10days.toString()
             });
         });
 
