@@ -2,7 +2,7 @@
 
 pragma solidity ^0.5.12;
 
-import "./VestingContract.sol";
+import "../VestingContract.sol";
 
 // THIS IS A MOCK TEST CONTRACT - DO NOT AUDIT OR DEPLOY!
 contract VestingContractWithFixedTime is VestingContract {

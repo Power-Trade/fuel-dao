@@ -24,9 +24,6 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
 
     IERC20 public token;
 
-    // All durations are based in number days
-    uint256 public constant PERIOD_ONE_DAY_IN_SECONDS = 1 days;
-
     constructor(IERC20 _token, uint256 _start, uint256 _end, uint256 _cliffDuration) public {
         require(address(_token) != address(0));
         owner = msg.sender;
@@ -65,7 +62,7 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
 
     // for a given beneficiary
     function tokenBalance() external view returns (uint256) {
-        return token.balanceOf(msg.sender);
+        return token.balanceOf(address(this));
     }
 
     function vestingScheduleForBeneficiary(address _beneficiary)
