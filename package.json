@@ -18,6 +18,7 @@
   "homepage": "https://github.com/syncdao/core#readme",
   "dependencies": {
     "@openzeppelin/contracts": "^2.4.0",
+    "@optionality.io/clone-factory": "^0.2.1",
     "dotenv": "^8.2.0",
     "moment": "^2.27.0"
   },

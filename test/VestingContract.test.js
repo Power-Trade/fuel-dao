@@ -5,6 +5,7 @@ const { latest } = time
 
 require('chai').should()
 
+const VestingDepositAccount = artifacts.require('VestingDepositAccount')
 const VestingContract = artifacts.require('VestingContractWithFixedTime')
 const ActualVestingContract = artifacts.require('VestingContract')
 const SyncToken = artifacts.require('SyncToken')
@@ -48,8 +49,9 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
     const creatorBalance = await this.token.balanceOf(admin)
     creatorBalance.should.be.bignumber.equal(INITIAL_SUPPLY)
 
-    // Construct new staking contract
-    this.vestingContract = await VestingContract.new(this.token.address, fromAdmin)
+    // Construct new vesting contract
+    this.baseDepositAccount = await VestingDepositAccount.new(fromAdmin)
+    this.vestingContract = await VestingContract.new(this.token.address, this.baseDepositAccount.address, fromAdmin)
 
     // Ensure vesting contract approved to move tokens
     await this.token.approve(this.vestingContract.address, INITIAL_SUPPLY, fromAdmin)
@@ -74,7 +76,7 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
   })
 
   it('reverts when trying to create the contract with zero address token', async () => {
-    await expectRevert.unspecified(VestingContract.new(constants.ZERO_ADDRESS, fromAdmin))
+    await expectRevert.unspecified(VestingContract.new(constants.ZERO_ADDRESS, this.baseDepositAccount.address, fromAdmin))
   })
 
   describe('reverts', async () => {
@@ -950,7 +952,7 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
 
   describe('VestingContract', async () => {
     beforeEach(async () => {
-      this.vestingContract = await ActualVestingContract.new(this.token.address, fromAdmin)
+      this.vestingContract = await ActualVestingContract.new(this.token.address, this.baseDepositAccount.address, fromAdmin)
     })
 
     it('returns zero for empty vesting schedule', async () => {

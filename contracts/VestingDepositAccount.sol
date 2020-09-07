@@ -8,7 +8,7 @@ contract VestingDepositAccount {
 
     SyncToken public token;
 
-    constructor(address _tokenAddress, address _controller, address _beneficiary) public {
+    function init(address _tokenAddress, address _controller, address _beneficiary) external {
         token = SyncToken(_tokenAddress);
         controller = _controller;
         beneficiary = _beneficiary;

@@ -9,7 +9,7 @@ contract VestingContractWithFixedTime is VestingContract {
 
     uint256 time;
 
-    constructor(IERC20 _token) VestingContract(_token) public {
+    constructor(IERC20 _token, address _baseVestingDepositAccount) VestingContract(_token, _baseVestingDepositAccount) public {
         //
     }
 

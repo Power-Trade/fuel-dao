@@ -15,7 +15,7 @@ module.exports = {
     }
   },
   gasReporter: {
-    enabled: false
+    enabled: true
   },
   networks: {
     mainnet: {

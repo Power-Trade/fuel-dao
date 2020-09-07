@@ -2,10 +2,11 @@ pragma solidity ^0.5.16;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./CloneFactory.sol";
 import "./IERC20.sol";
 import "./VestingDepositAccount.sol";
 
-contract VestingContract is ReentrancyGuard {
+contract VestingContract is CloneFactory, ReentrancyGuard {
     using SafeMath for uint256;
 
     event ScheduleCreated(address indexed _beneficiary, uint256 indexed _amount);
@@ -38,10 +39,13 @@ contract VestingContract is ReentrancyGuard {
     // All durations are based in number days
     uint256 public constant PERIOD_ONE_DAY_IN_SECONDS = 1 days;
 
-    constructor(IERC20 _token) public {
+    address public baseVestingDepositAccount;
+
+    constructor(IERC20 _token, address _baseVestingDepositAccount) public {
         require(address(_token) != address(0));
         token = _token;
         owner = msg.sender;
+        baseVestingDepositAccount = _baseVestingDepositAccount;
     }
 
     function createVestingScheduleConfig(string calldata _scheduleConfigId, uint256 _start, uint256 _durationInDays, uint256 _cliffDurationInDays) external {
@@ -67,7 +71,9 @@ contract VestingContract is ReentrancyGuard {
         require(vestingSchedule[_beneficiary].amount == 0, "VestingContract::createVestingSchedule: Schedule already in flight");
 
         // Set up the vesting deposit account for the _beneficiary
-        VestingDepositAccount depositAccount = new VestingDepositAccount(address(token), address(this), _beneficiary);
+        address depositAccountAddress = createClone(baseVestingDepositAccount);
+        VestingDepositAccount depositAccount = VestingDepositAccount(depositAccountAddress);
+        depositAccount.init(address(token), address(this), _beneficiary);
 
         // Create schedule
         vestingSchedule[_beneficiary] = Schedule({
