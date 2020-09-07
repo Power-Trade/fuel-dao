@@ -9,7 +9,7 @@ contract VestingDepositAccount {
     SyncToken public token;
 
     function init(address _tokenAddress, address _controller, address _beneficiary) external {
-        require(controller == address(0), "VestingDepositAccount::init: Contract Already Initialized");
+        require(controller == address(0), "VestingDepositAccount::init: Contract already initialized");
         token = SyncToken(_tokenAddress);
         controller = _controller;
         beneficiary = _beneficiary;
