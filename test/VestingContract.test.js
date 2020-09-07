@@ -30,18 +30,15 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
     const _7days = 7;
     const _10days = 10;
 
-    const fromAdmin = {from: admin};
-    const fromRandom = {from: random};
-
     beforeEach(async () => {
-        this.token = await SyncToken.new(INITIAL_SUPPLY, admin, admin, fromAdmin);
+        this.token = await SyncToken.new(INITIAL_SUPPLY, admin, admin, {from: admin});
 
         // Assert the token is constructed correctly
         const creatorBalance = await this.token.balanceOf(admin);
         creatorBalance.should.be.bignumber.equal(INITIAL_SUPPLY);
 
         // Construct new vesting contract
-        this.baseDepositAccount = await VestingDepositAccount.new(fromAdmin);
+        this.baseDepositAccount = await VestingDepositAccount.new({from: admin});
 
         // this.vestingContract = await VestingContract.new(
         //   this.token.address,
@@ -79,13 +76,13 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
             _start,
             _end,
             _cliffDurationInSecs,
-            fromAdmin
+            {from: admin}
         );
 
         await this.vestingContract.fixTime(this.now);
 
         // Ensure vesting contract approved to move tokens
-        await this.token.approve(this.vestingContract.address, INITIAL_SUPPLY, fromAdmin);
+        await this.token.approve(this.vestingContract.address, INITIAL_SUPPLY, {from: admin});
 
         // Ensure allowance set for vesting contract
         const vestingAllowance = await this.token.allowance(admin, this.vestingContract.address);
@@ -102,12 +99,30 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
     });
 
     describe('reverts', async () => {
+        beforeEach(async () => {
+            // Current time
+            this.now = moment.unix(await latest()).unix().valueOf();
+
+            // create schedule - starting in 1 day, going for 10 days
+            let start = moment.unix(await latest()).add(1, 'day').unix().valueOf();
+            await createNewVestingContract({
+                _start: start,
+                _end: new BN(start).add(new BN(_10days).mul(PERIOD_ONE_DAY_IN_SECONDS)),
+                _cliffDurationInSecs: 0
+            });
+
+            // move time to start time
+            this.now = start;
+            await this.vestingContract.fixTime(this.now);
+        });
+
         describe('createVestingSchedule() reverts when', async () => {
             it('specifying a zero address beneficiary', async () => {
                 await expectRevert(
                     givenAVestingSchedule({
                         beneficiary: constants.ZERO_ADDRESS,
-                        ...fromAdmin
+                        amount: TEN_THOUSAND_TOKENS,
+                        from: admin,
                     }),
                     'Beneficiary cannot be empty'
                 );
@@ -116,25 +131,38 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
             it('specifying a zero vesting amount', async () => {
                 await expectRevert(
                     givenAVestingSchedule({
+                        beneficiary: beneficiary1,
                         amount: 0,
-                        ...fromAdmin
+                        from: admin,
                     }),
                     'Amount cannot be empty'
                 );
             });
 
             it('trying to overwrite an inflight schedule', async () => {
-                await givenAVestingSchedule(fromAdmin);
+                await givenAVestingSchedule({
+                    beneficiary: beneficiary1,
+                    amount: TEN_THOUSAND_TOKENS,
+                    from: admin,
+                });
                 await expectRevert(
-                    givenAVestingSchedule(fromAdmin),
+                    givenAVestingSchedule({
+                        beneficiary: beneficiary1,
+                        amount: TEN_THOUSAND_TOKENS,
+                        from: admin,
+                    }),
                     'Schedule already in flight'
                 );
             });
 
             it('trying to update schedule beneficiary when not owner', async () => {
-                await givenAVestingSchedule(fromAdmin);
+                await givenAVestingSchedule({
+                    beneficiary: beneficiary1,
+                    amount: TEN_THOUSAND_TOKENS,
+                    from: admin,
+                });
                 await expectRevert(
-                    this.vestingContract.updateScheduleBeneficiary(beneficiary1, beneficiary2, fromRandom),
+                    this.vestingContract.updateScheduleBeneficiary(beneficiary1, beneficiary2, {from: beneficiary1}),
                     'VestingContract::updateScheduleBeneficiary: Only owner'
                 );
             });
@@ -149,11 +177,15 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
             });
 
             it('a beneficiary has no remaining balance', async () => {
-                await givenAVestingSchedule(fromAdmin);
+                await givenAVestingSchedule({
+                    beneficiary: beneficiary1,
+                    amount: TEN_THOUSAND_TOKENS,
+                    from: admin,
+                });
 
                 // fast forward 15 days (past the end of the schedule so that all allowance is withdrawn)
                 this._15DaysAfterScheduleStart = moment.unix(await latest()).add(15, 'day').unix().valueOf();
-                await this.vestingContract.fixTime(this._15DaysAfterScheduleStart, fromAdmin);
+                await this.vestingContract.fixTime(this._15DaysAfterScheduleStart, {from: admin});
 
                 await this.vestingContract.drawDown({from: beneficiary1});
                 (await this.token.balanceOf(beneficiary1)).should.be.bignumber.equal(TEN_THOUSAND_TOKENS);
@@ -164,23 +196,18 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
                 );
             });
 
-            it('the allowance for a particular second has been exceeded (two calls in the same block scenario)', async () => {
+            it.skip('the allowance for a particular second has been exceeded (two calls in the same block scenario)', async () => {
                 this.now = moment.unix(await latest()).valueOf();
 
-                await this.vestingContract.init(
-                    this.now,
-                    new BN(_10days).mul(PERIOD_ONE_DAY_IN_SECONDS),
-                    0,
-                    fromAdmin
-                );
-
                 await givenAVestingSchedule({
-                    ...fromAdmin
+                    beneficiary: beneficiary1,
+                    amount: TEN_THOUSAND_TOKENS,
+                    from: admin,
                 });
 
                 // fast forward 8 days
                 this._8DaysAfterScheduleStart = moment.unix(this.now).add(8, 'day').unix().valueOf();
-                await this.vestingContract.fixTime(this._8DaysAfterScheduleStart, fromAdmin);
+                await this.vestingContract.fixTime(this._8DaysAfterScheduleStart, {from: admin});
 
                 await this.vestingContract.drawDown({from: beneficiary1});
                 (await this.token.balanceOf(beneficiary1)).should.be.bignumber.not.equal(TEN_THOUSAND_TOKENS);
@@ -191,10 +218,9 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
                 );
             });
         });
-
     });
 
-    describe.only('single schedule - incomplete draw down', async () => {
+    describe('single schedule - incomplete draw down', async () => {
         beforeEach(async () => {
             // Current time
             this.now = moment.unix(await latest()).unix().valueOf();
@@ -213,7 +239,9 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
 
             // setup schedule
             this.transaction = await givenAVestingSchedule({
-                ...fromAdmin
+                beneficiary: beneficiary1,
+                amount: TEN_THOUSAND_TOKENS,
+                from: admin,
             });
         });
 
@@ -454,21 +482,27 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
         });
     });
 
-    describe('single schedule - future start date', async () => {
+    describe.only('single schedule - future start date', async () => {
         beforeEach(async () => {
-            this.now = await latest();
-            this.onyDayFromNow = moment.unix(this.now).add(1, 'days').unix().valueOf();
+            // Current time
+            this.now = moment.unix(await latest()).unix().valueOf();
 
-            await this.vestingContract.init(
-                this.onyDayFromNow,
-                new BN(_7days).mul(PERIOD_ONE_DAY_IN_SECONDS),
-                0,
-                fromAdmin
-            );
+
+            // create schedule - starting in 1 day, going for 10 days
+            this.onyDayFromNow = moment.unix(await latest()).add(1, 'day').unix().valueOf();
+            await createNewVestingContract({
+                _start: this.onyDayFromNow,
+                _end: new BN(this.onyDayFromNow).add(new BN(_7days).mul(PERIOD_ONE_DAY_IN_SECONDS)),
+                _cliffDurationInSecs: 0
+            });
+
+            // fixed to now
+            await this.vestingContract.fixTime(this.now);
 
             await givenAVestingSchedule({
+                beneficiary: beneficiary1,
                 amount: FIVE_THOUSAND_TOKENS,
-                ...fromAdmin
+                from: admin,
             });
         });
 
@@ -498,10 +532,7 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
         });
 
         it('validateAvailableDrawDownAmount() is zero as not started yet', async () => {
-            await expectRevert(
-                this.vestingContract.availableDrawDownAmount(beneficiary1),
-                'Schedule not started'
-            );
+            (await this.vestingContract.availableDrawDownAmount(beneficiary1)).should.be.bignumber.equal('0');
         });
     });
 
@@ -680,13 +711,11 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
         return object;
     };
 
-    const givenAVestingSchedule = async (options) => {
-        const defaultVestingSchedule = await generateDefaultVestingSchedule();
-        const {beneficiary, amount} = applyOptions(options, defaultVestingSchedule);
+    const givenAVestingSchedule = async ({beneficiary, amount, from}) => {
         return this.vestingContract.createVestingSchedule(
             beneficiary,
             amount,
-            {from: options.from}
+            {from: from}
         );
     };
 

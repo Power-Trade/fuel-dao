@@ -191,7 +191,6 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
 
     function _availableDrawDownAmount(address _beneficiary) internal view returns (uint256 _amount) {
         Schedule memory schedule = vestingSchedule[_beneficiary];
-        require(start <= _getNow(), "VestingContract::_availableDrawDownAmount: Schedule not started");
 
         // voided contract should not allow any drawdowns
         if (voided[_beneficiary]) {
