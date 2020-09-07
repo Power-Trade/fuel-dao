@@ -14,7 +14,6 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
     event DrawDown(address indexed _beneficiary, uint256 indexed _amount, uint256 indexed _time);
 
     struct Schedule {
-        uint256 end;
         uint256 amount;
         VestingDepositAccount depositAccount;
     }
@@ -26,41 +25,36 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
     mapping(address => uint256) public totalDrawn;
     mapping(address => uint256) public lastDrawnAt;
 
+    // when updating beneficiary void the old schedule
+    mapping(address => bool) public voided;
+
     IERC20 public token;
 
     address public baseVestingDepositAccount;
 
     uint256 public start;
-    uint256 public durationInSecs;
+    uint256 public end;
     uint256 public cliffDuration;
 
     constructor(
         IERC20 _token,
         address _baseVestingDepositAccount,
         uint256 _start,
-        uint256 _durationInSecs,
+        uint256 _end,
         uint256 _cliffDurationInSecs
     ) public {
         require(address(_token) != address(0));
-        require(_durationInSecs > 0, "VestingContract::createVestingScheduleConfig: Duration cannot be empty");
+        require(end >= start, "VestingContract::constructor: Start must be before end");
 
         token = _token;
         owner = msg.sender;
         baseVestingDepositAccount = _baseVestingDepositAccount;
 
         start = _start;
-        durationInSecs = _durationInSecs;
+        end = _end;
         cliffDuration = _cliffDurationInSecs;
     }
 
-//    function init(uint256 _start, uint256 _durationInSecs, uint256 _cliffDurationInSecs) external {
-//        require(msg.sender == owner, "VestingContract::createVestingScheduleConfig: Only owner");
-//        require(_durationInSecs > 0, "VestingContract::createVestingScheduleConfig: Duration cannot be empty");
-//
-//        start = _start;
-//        durationInSecs = _durationInSecs;
-//        cliffDuration = _cliffDurationInSecs;
-//    }
 
     function createVestingSchedule(address _beneficiary, uint256 _amount) external returns (bool) {
         require(_beneficiary != address(0), "VestingContract::createVestingSchedule: Beneficiary cannot be empty");
@@ -77,12 +71,10 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         depositAccount.init(address(token), address(this), _beneficiary);
 
         // Create schedule
-        uint256 end = start.add(durationInSecs);
         vestingSchedule[_beneficiary] = Schedule({
-            end: end,
             amount : _amount,
             depositAccount : depositAccount
-        });
+            });
 
         // Vest the tokens into the deposit account and delegate to the beneficiary
         require(token.transferFrom(msg.sender, address(depositAccount), _amount), "VestingContract::createVestingSchedule: Unable to transfer tokens to VDA");
@@ -102,18 +94,39 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
     // transfer a schedule in tact to a new beneficiary (for pre-locked up schedules with no beneficiary)
     function updateScheduleBeneficiary(address _currentBeneficiary, address _newBeneficiary) external {
         require(msg.sender == owner, "VestingContract::updateScheduleBeneficiary: Only owner");
-        _updateScheduleBeneficiary(_currentBeneficiary, _newBeneficiary);
+
+        // retrieve existing schedule
+        Schedule memory schedule = vestingSchedule[_currentBeneficiary];
+        require(schedule.amount > 0, "VestingContract::_updateScheduleBeneficiary: No schedule exists for current beneficiary");
+
+        require(_drawDown(_currentBeneficiary), "VestingContract::_updateScheduleBeneficiary: Unable to drawn down");
+
+        // setup new schedule with the amount left after the previous beneficiary's draw down
+        vestingSchedule[_newBeneficiary] = Schedule({
+            amount : schedule.amount.sub(totalDrawn[_currentBeneficiary]),
+            depositAccount : schedule.depositAccount
+            });
+
+        vestingSchedule[_newBeneficiary].depositAccount.switchBeneficiary(_newBeneficiary);
+
+        // ensure the new beneficiary has delegate rights
+        _updateVotingDelegation(_newBeneficiary);
+
+        // the old schedule is now void
+        voided[_currentBeneficiary] = true;
     }
 
     ///////////////
     // Accessors //
     ///////////////
 
+    // FIXME required?
     // for a given beneficiary
     function tokenBalance() external view returns (uint256) {
         return token.balanceOf(address(vestingSchedule[msg.sender].depositAccount));
     }
 
+    // FIXME move to vestingScheduleForBeneficiary?
     function depositAccountAddress() external view returns (address) {
         Schedule memory schedule = vestingSchedule[msg.sender];
         return address(schedule.depositAccount);
@@ -127,12 +140,12 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         schedule.amount,
         totalDrawn[_beneficiary],
         lastDrawnAt[_beneficiary],
-        schedule.amount.div(schedule.end.sub(start)),
+        schedule.amount.div(end.sub(start)),
         schedule.amount.sub(totalDrawn[_beneficiary])
         );
     }
 
-    function availableDrawDownAmount(address _beneficiary) external view returns (uint256 _amount, uint256 _timeLastDrawn, uint256 _drawDownRate) {
+    function availableDrawDownAmount(address _beneficiary) external view returns (uint256 _amount) {
         return _availableDrawDownAmount(_beneficiary);
     }
 
@@ -148,7 +161,7 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         Schedule storage schedule = vestingSchedule[_beneficiary];
         require(schedule.amount > 0, "VestingContract::_drawDown: There is no schedule currently in flight");
 
-        (uint256 amount,,) = _availableDrawDownAmount(_beneficiary);
+        uint256 amount = _availableDrawDownAmount(_beneficiary);
         require(amount > 0, "VestingContract::_drawDown: No allowance left to withdraw");
 
         // Update last drawn to now
@@ -165,30 +178,9 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         return true;
     }
 
-    function _updateScheduleBeneficiary(address _currentBeneficiary, address _newBeneficiary) internal {
-        // retrieve existing schedule
-        Schedule storage schedule = vestingSchedule[_currentBeneficiary];
-        require(schedule.amount > 0, "VestingContract::_updateScheduleBeneficiary: No schedule exists for current beneficiary");
-
-        require(_drawDown(_currentBeneficiary), "VestingContract::_updateScheduleBeneficiary: Unable to drawn down");
-
-        // transfer the schedule to the new beneficiary
-        vestingSchedule[_newBeneficiary] = Schedule({
-            end: schedule.end,
-            amount: schedule.amount.sub(totalDrawn[_currentBeneficiary]),
-            depositAccount: schedule.depositAccount
-        });
-
-        vestingSchedule[_newBeneficiary].depositAccount.switchBeneficiary(_newBeneficiary);
-
-        // close down the old schedule by setting amount to drawn and ending
-        schedule.amount = totalDrawn[_currentBeneficiary];
-        schedule.end = _getNow();
-    }
-
     // note only the beneficiary associated with a vesting schedule can claim voting rights
     function _updateVotingDelegation(address _delegatee) internal {
-        Schedule storage schedule = vestingSchedule[_delegatee];
+        Schedule memory schedule = vestingSchedule[_delegatee];
         require(schedule.amount > 0, "VestingContract::_updateVotingDelegation: There is no schedule currently in flight");
         schedule.depositAccount.updateVotingDelegation(_delegatee);
     }
@@ -197,26 +189,24 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         return block.timestamp;
     }
 
-    function _availableDrawDownAmount(address _beneficiary) internal view returns (uint256 _amount, uint256 _timeLastDrawn, uint256 _drawDownRate) {
+    function _availableDrawDownAmount(address _beneficiary) internal view returns (uint256 _amount) {
         Schedule memory schedule = vestingSchedule[_beneficiary];
         require(start <= _getNow(), "VestingContract::_availableDrawDownAmount: Schedule not started");
 
-        ///////////////////////
-        // Cliff Period      //
-        ///////////////////////
-
-        if (_getNow() < start.add(cliffDuration)) {
-            // the cliff period has not ended, no tokens to draw down
-            return (0, lastDrawnAt[_beneficiary], 0);
+        // voided contract should not allow any drawdowns
+        if (voided[_beneficiary]) {
+            return 0;
         }
 
-        ///////////////////////
-        // Schedule complete //
-        ///////////////////////
+        // cliff
+        if (_getNow() < start.add(cliffDuration)) {
+            // the cliff period has not ended, no tokens to draw down
+            return 0;
+        }
 
-        if (_getNow() > schedule.end) {
-            uint256 amount = schedule.amount.sub(totalDrawn[_beneficiary]);
-            return (amount, lastDrawnAt[_beneficiary], 0);
+        // schedule complete
+        if (_getNow() > end) {
+            return schedule.amount.sub(totalDrawn[_beneficiary]);
         }
 
         ////////////////////////
@@ -230,11 +220,9 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         uint256 timePassedSinceLastInvocation = _getNow().sub(timeLastDrawn);
 
         // Work out how many due tokens - time passed * rate per second
-        uint256 drawDownRate = schedule.amount.div(schedule.end.sub(start));
+        uint256 drawDownRate = schedule.amount.div(end.sub(start));
         uint256 amount = timePassedSinceLastInvocation.mul(drawDownRate);
 
-        require(amount <= schedule.amount.sub(totalDrawn[_beneficiary]), "VestingContract::_availableDrawDownAmount: Sanity check");
-
-        return (amount, timeLastDrawn, drawDownRate);
+        return amount;
     }
 }
