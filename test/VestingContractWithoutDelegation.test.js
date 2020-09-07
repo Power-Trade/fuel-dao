@@ -76,7 +76,7 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
     await expectRevert.unspecified(VestingContract.new(constants.ZERO_ADDRESS, this.baseDepositAccount.address, fromAdmin))
   })
 
-    describe.skip('reverts', async () => {
+    describe('reverts', async () => {
         describe('createVestingSchedule() reverts when', async () => {
             it('specifying a zero address beneficiary', async () => {
                 await expectRevert(
@@ -105,14 +105,6 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
                     'Schedule already in flight'
                 );
             });
-
-            it('trying to update schedule benefiary when not owner', async () => {
-                await givenAVestingSchedule(fromAdmin);
-                await expectRevert(
-                    this.vestingContract.updateScheduleBeneficiary(beneficiary1, beneficiary2, fromRandom),
-                    'VestingContract::updateScheduleBeneficiary: Only owner'
-                );
-            });
         });
 
         describe('drawDown() reverts when', async () => {
@@ -139,7 +131,7 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
                 );
             });
 
-            it('the allowance for a particular second has been exceeded (two calls in the same block scenario)', async () => {
+            it.skip('the allowance for a particular second has been exceeded (two calls in the same block scenario)', async () => {
                 this.now = moment.unix(await latest()).valueOf();
 
                 await this.vestingContract.createVestingScheduleConfig(
