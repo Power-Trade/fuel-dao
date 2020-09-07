@@ -55,12 +55,9 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         cliffDuration = _cliffDurationInSecs;
     }
 
-
     function createVestingSchedule(address _beneficiary, uint256 _amount) external returns (bool) {
         require(_beneficiary != address(0), "VestingContract::createVestingSchedule: Beneficiary cannot be empty");
         require(_amount > 0, "VestingContract::createVestingSchedule: Amount cannot be empty");
-
-        require(start > 0, "VestingContract::createVestingSchedule: Schedule configuration does not exist");
 
         // Ensure one per address
         require(vestingSchedule[_beneficiary].amount == 0, "VestingContract::createVestingSchedule: Schedule already in flight");
@@ -97,8 +94,6 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
 
         // retrieve existing schedule
         Schedule memory schedule = vestingSchedule[_currentBeneficiary];
-        require(schedule.amount > 0, "VestingContract::_updateScheduleBeneficiary: No schedule exists for current beneficiary");
-
         require(_drawDown(_currentBeneficiary), "VestingContract::_updateScheduleBeneficiary: Unable to drawn down");
 
         // setup new schedule with the amount left after the previous beneficiary's draw down
@@ -158,7 +153,7 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
     // Internal //
     //////////////
     function _drawDown(address _beneficiary) internal returns (bool) {
-        Schedule storage schedule = vestingSchedule[_beneficiary];
+        Schedule memory schedule = vestingSchedule[_beneficiary];
         require(schedule.amount > 0, "VestingContract::_drawDown: There is no schedule currently in flight");
 
         uint256 amount = _availableDrawDownAmount(_beneficiary);

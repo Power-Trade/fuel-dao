@@ -39,33 +39,6 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
 
         // Construct new vesting contract
         this.baseDepositAccount = await VestingDepositAccount.new({from: admin});
-
-        // this.vestingContract = await VestingContract.new(
-        //   this.token.address,
-        //   this.baseDepositAccount.address,
-        //   moment.unix(await latest()).add(1, 'day').unix().valueOf(),
-        //   new BN(_10days).mul(PERIOD_ONE_DAY_IN_SECONDS),
-        //   0,
-        //   fromAdmin
-        // );
-        //
-        // this.now = moment.unix(await latest()).unix().valueOf();
-        // await this.vestingContract.fixTime(this.now);
-        //
-        // // Ensure vesting contract approved to move tokens
-        // await this.token.approve(this.vestingContract.address, INITIAL_SUPPLY, fromAdmin);
-        //
-        // // Ensure allowance set for vesting contract
-        // const vestingAllowance = await this.token.allowance(admin, this.vestingContract.address);
-        // vestingAllowance.should.be.bignumber.equal(INITIAL_SUPPLY);
-
-        // // set up a default schedule config
-        // await this.vestingContract.init(
-        //     moment.unix(await latest()).add(1, 'day').unix().valueOf(),
-        //     new BN(_10days).mul(PERIOD_ONE_DAY_IN_SECONDS),
-        //     0,
-        //     fromAdmin
-        // );
     });
 
     const createNewVestingContract = async ({_start, _end, _cliffDurationInSecs}) => {
@@ -89,13 +62,23 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
         vestingAllowance.should.be.bignumber.equal(INITIAL_SUPPLY);
     };
 
-    it('should return token address', async () => {
-        const token = await this.vestingContract.token();
-        token.should.be.equal(this.token.address);
+    it('should return token and baseDepositAccount address', async () => {
+        // Current time
+        this.now = moment.unix(await latest()).unix().valueOf();
+
+        // create schedule - starting in 1 day, going for 10 days
+        await createNewVestingContract({
+            _start: this.now,
+            _end: new BN(this.now).add(new BN(_10days).mul(PERIOD_ONE_DAY_IN_SECONDS)),
+            _cliffDurationInSecs: 0
+        });
+
+        (await this.vestingContract.token()).should.be.equal(this.token.address);
+        (await this.vestingContract.baseVestingDepositAccount()).should.be.equal(this.baseDepositAccount.address);
     });
 
     it('reverts when trying to create the contract with zero address token', async () => {
-        await expectRevert.unspecified(VestingContract.new(constants.ZERO_ADDRESS, this.baseDepositAccount.address, fromAdmin));
+        await expectRevert.unspecified(VestingContract.new(constants.ZERO_ADDRESS, this.baseDepositAccount.address, 0, 0, 0, {from: admin}));
     });
 
     describe('reverts', async () => {
@@ -482,11 +465,10 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
         });
     });
 
-    describe.only('single schedule - future start date', async () => {
+    describe('single schedule - future start date', async () => {
         beforeEach(async () => {
             // Current time
             this.now = moment.unix(await latest()).unix().valueOf();
-
 
             // create schedule - starting in 1 day, going for 10 days
             this.onyDayFromNow = moment.unix(await latest()).add(1, 'day').unix().valueOf();
@@ -538,20 +520,26 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
 
     describe('single schedule - starts now - full draw after end date', async () => {
         beforeEach(async () => {
+            // Current time
             this.now = moment.unix(await latest()).unix().valueOf();
-            await this.vestingContract.fixTime(this.now);
 
-            await this.vestingContract.init(
-                this.now,
-                new BN(_10days).mul(PERIOD_ONE_DAY_IN_SECONDS),
-                0,
-                fromAdmin
-            );
-
-            this.transaction = await givenAVestingSchedule({
-                ...fromAdmin
+            // create schedule - starting in 1 day, going for 10 days
+            await createNewVestingContract({
+                _start: this.now,
+                _end: new BN(this.now).add(new BN(_10days).mul(PERIOD_ONE_DAY_IN_SECONDS)),
+                _cliffDurationInSecs: 0
             });
 
+            // fixed to now
+            await this.vestingContract.fixTime(this.now);
+
+            await givenAVestingSchedule({
+                beneficiary: beneficiary1,
+                amount: TEN_THOUSAND_TOKENS,
+                from: admin,
+            });
+
+            // move to after
             this._11DaysAfterScheduleStart = moment.unix(this.now).add(11, 'day').unix().valueOf();
             await this.vestingContract.fixTime(this._11DaysAfterScheduleStart);
         });
@@ -571,20 +559,26 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
 
     describe('single schedule - future start - completes on time - attempts to withdraw after completed', async () => {
         beforeEach(async () => {
+            // Current time
             this.now = moment.unix(await latest()).unix().valueOf();
 
-            await this.vestingContract.init(
-                this.now,
-                new BN(_100days).mul(PERIOD_ONE_DAY_IN_SECONDS),
-                0,
-                fromAdmin
-            );
+            // create schedule - starting in 1 day, going for 10 days
+            this.onyDayFromNow = moment.unix(await latest()).add(1, 'day').unix().valueOf();
+            await createNewVestingContract({
+                _start: this.now,
+                _end: new BN(this.now).add(new BN(_100days).mul(PERIOD_ONE_DAY_IN_SECONDS)),
+                _cliffDurationInSecs: 0
+            });
+
+            // fixed to now
+            await this.vestingContract.fixTime(this.now);
 
             this.transaction = await givenAVestingSchedule({
-                ...fromAdmin,
                 beneficiary: beneficiary1,
-                amount: _3333_THOUSAND_TOKENS
+                amount: _3333_THOUSAND_TOKENS,
+                from: admin,
             });
+
             await this.vestingContract.fixTime(this.now);
         });
 
@@ -641,34 +635,47 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
 
     describe('single schedule - update beneficary', async () => {
         beforeEach(async () => {
+            // Current time
             this.now = moment.unix(await latest()).unix().valueOf();
 
-            await givenAVestingSchedule(fromAdmin);
+            // create schedule - starting in 1 day, going for 10 days
+            await createNewVestingContract({
+                _start: this.now,
+                _end: new BN(this.now).add(new BN(_10days).mul(PERIOD_ONE_DAY_IN_SECONDS)),
+                _cliffDurationInSecs: 0
+            });
+
+            // fixed to now
             await this.vestingContract.fixTime(this.now);
+
+            await givenAVestingSchedule({
+                beneficiary: beneficiary1,
+                amount: TEN_THOUSAND_TOKENS,
+                from: admin,
+            });
         });
 
-        describe('after 5 days you can update the beneficiary', async () => {
+        describe('after 6 days you can update the beneficiary', async () => {
             beforeEach(async () => {
-                this._10DaysAfterScheduleStart =
+                this._6DaysAfterScheduleStart =
                     moment.unix(this.now)
                         .add(6, 'day')
                         .add(1, 'second') // plus 1 second so the time has passed!
                         .unix().valueOf();
-                await this.vestingContract.fixTime(this._10DaysAfterScheduleStart);
+                await this.vestingContract.fixTime(this._6DaysAfterScheduleStart);
 
                 (await this.token.balanceOf(beneficiary1)).should.be.bignumber.equal('0');
 
                 (await this.token.balanceOf(beneficiary2)).should.be.bignumber.equal('0');
-
-
             });
 
             it('should have draw down to original beneficiary and transferred', async () => {
 
-                await this.vestingContract.updateScheduleBeneficiary(beneficiary1, beneficiary2, fromAdmin);
+                await this.vestingContract.updateScheduleBeneficiary(beneficiary1, beneficiary2, {from: admin});
 
                 // original has been paid due tokens at point of update
                 (await this.token.balanceOf(beneficiary1)).should.be.bignumber.gt(FIVE_THOUSAND_TOKENS);
+                (await this.vestingContract.voided(beneficiary1)).should.be.equal(true);
 
                 const amountDrawn = await this.vestingContract.totalDrawn(beneficiary1);
 
@@ -683,34 +690,6 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
         });
     });
 
-    describe('VestingContract', async () => {
-        beforeEach(async () => {
-            this.vestingContract = await ActualVestingContract.new(this.token.address, this.baseDepositAccount.address, fromAdmin);
-        });
-
-        it('returns zero for empty vesting schedule', async () => {
-            const {_amount, _timeLastDrawn, _drawDownRate} = await this.vestingContract.availableDrawDownAmount(beneficiary1);
-            _amount.should.be.bignumber.equal('0');
-            _timeLastDrawn.should.be.bignumber.equal('0');
-            _drawDownRate.should.be.bignumber.equal('0');
-        });
-    });
-
-    const generateDefaultVestingSchedule = async () => {
-        return {
-            beneficiary: beneficiary1,
-            amount: TEN_THOUSAND_TOKENS
-        };
-    };
-
-    const applyOptions = (options, object) => {
-        if (!options) return object;
-        Object.keys(options).forEach(key => {
-            object[key] = options[key];
-        });
-        return object;
-    };
-
     const givenAVestingSchedule = async ({beneficiary, amount, from}) => {
         return this.vestingContract.createVestingSchedule(
             beneficiary,
@@ -720,7 +699,7 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
     };
 
     const validateVestingScheduleForBeneficiary = async (beneficiary, expectations) => {
-        const {_scheduleConfigId, _amount, _totalDrawn, _lastDrawnAt, _drawDownRate, _remainingBalance} = await this.vestingContract.vestingScheduleForBeneficiary(beneficiary);
+        const {_amount, _totalDrawn, _lastDrawnAt, _drawDownRate, _remainingBalance} = await this.vestingContract.vestingScheduleForBeneficiary(beneficiary);
 
         const scheduleRemainingBalance = await this.vestingContract.remainingBalance(beneficiary);
 
