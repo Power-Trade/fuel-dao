@@ -8,3 +8,6 @@ artifacts
 .idea/
 *.iml
 .DS_Store
+
+# solidity coverage
+coverage/
