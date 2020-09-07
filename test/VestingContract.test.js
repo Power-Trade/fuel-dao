@@ -44,6 +44,9 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
         this.baseDepositAccount = await VestingDepositAccount.new(fromAdmin);
         this.vestingContract = await VestingContract.new(this.token.address, this.baseDepositAccount.address, fromAdmin);
 
+        this.now = moment.unix(await latest()).unix().valueOf();
+        await this.vestingContract.fixTime(this.now);
+
         // Ensure vesting contract approved to move tokens
         await this.token.approve(this.vestingContract.address, INITIAL_SUPPLY, fromAdmin);
 
