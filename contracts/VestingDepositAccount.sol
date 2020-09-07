@@ -19,13 +19,8 @@ contract VestingDepositAccount {
         return token.transfer(beneficiary, _amount);
     }
 
-    function switchBeneficiary(address _newBeneficiary, uint256 _drawDownAmount) external {
+    function switchBeneficiary(address _newBeneficiary) external {
         require(msg.sender == controller, "VestingDepositAccount::switchBeneficiary: Only controller");
-
-        if (_drawDownAmount > 0) {
-            token.transfer(beneficiary, _drawDownAmount);
-        }
-
         beneficiary = _newBeneficiary;
     }
 

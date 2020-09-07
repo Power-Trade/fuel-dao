@@ -89,24 +89,7 @@ contract VestingContract is ReentrancyGuard {
     }
 
     function drawDown() nonReentrant external returns (bool) {
-        Schedule storage schedule = vestingSchedule[msg.sender];
-        require(schedule.amount > 0, "VestingContract::drawDown: There is no schedule currently in flight");
-
-        (uint256 amount,,) = _availableDrawDownAmount(msg.sender);
-        require(amount > 0, "VestingContract::drawDown: No allowance left to withdraw");
-
-        // Update last drawn to now
-        lastDrawnAt[msg.sender] = _getNow();
-
-        // Increase total drawn amount
-        totalDrawn[msg.sender] = totalDrawn[msg.sender].add(amount);
-
-        // Issue tokens to beneficiary
-        require(schedule.depositAccount.transferToBeneficiary(amount), "VestingContract::drawDown: Unable to transfer tokens");
-
-        emit DrawDown(msg.sender, amount, _getNow());
-
-        return true;
+        return _drawDown(msg.sender);
     }
 
     // transfer a schedule in tact to a new beneficiary (for pre-locked up schedules with no beneficiary)
@@ -155,22 +138,43 @@ contract VestingContract is ReentrancyGuard {
     //////////////
     // Internal //
     //////////////
+    function _drawDown(address _beneficiary) internal returns (bool) {
+        Schedule storage schedule = vestingSchedule[_beneficiary];
+        require(schedule.amount > 0, "VestingContract::_drawDown: There is no schedule currently in flight");
+
+        (uint256 amount,,) = _availableDrawDownAmount(_beneficiary);
+        require(amount > 0, "VestingContract::_drawDown: No allowance left to withdraw");
+
+        // Update last drawn to now
+        lastDrawnAt[_beneficiary] = _getNow();
+
+        // Increase total drawn amount
+        totalDrawn[_beneficiary] = totalDrawn[_beneficiary].add(amount);
+
+        // Issue tokens to beneficiary
+        require(schedule.depositAccount.transferToBeneficiary(amount), "VestingContract::_drawDown: Unable to transfer tokens");
+
+        emit DrawDown(_beneficiary, amount, _getNow());
+
+        return true;
+    }
 
     function _updateScheduleBeneficiary(address _currentBeneficiary, address _newBeneficiary) internal {
         // retrieve existing schedule
         Schedule memory schedule = vestingSchedule[_currentBeneficiary];
         require(schedule.amount > 0, "VestingContract::_updateScheduleBeneficiary: No schedule exists for current beneficiary");
 
+        require(_drawDown(_currentBeneficiary), "VestingContract::_updateScheduleBeneficiary: Unable to drawn down");
+
         // transfer the schedule to the new beneficiary
         vestingSchedule[_newBeneficiary] = Schedule({
             scheduleConfigId: schedule.scheduleConfigId,
-            amount: schedule.amount,
+            amount: schedule.amount.sub(totalDrawn[_currentBeneficiary]),
             drawDownRate: schedule.drawDownRate,
             depositAccount: schedule.depositAccount
             });
 
-        (uint256 amount,,) = _availableDrawDownAmount(_currentBeneficiary);
-        vestingSchedule[_newBeneficiary].depositAccount.switchBeneficiary(_newBeneficiary, amount);
+        vestingSchedule[_newBeneficiary].depositAccount.switchBeneficiary(_newBeneficiary);
 
         // delete the link between the old beneficiary and the schedule
         delete vestingSchedule[_currentBeneficiary];
