@@ -274,14 +274,13 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
         });
 
         // FIXME should this be timeLastDrawn zero?
-        it.skip('validateAvailableDrawDownAmount()', async () => {
+        it('validateAvailableDrawDownAmount()', async () => {
             // move forward 1 day
             const _1DayInTheFuture = moment.unix(this.now).add(1, 'day').unix().valueOf();
             await this.vestingContract.fixTime(_1DayInTheFuture);
 
             await validateAvailableDrawDownAmount(beneficiary1, {
-                amount: '999999999999999993600',
-                timeLastDrawn: this.now.toString()
+                amount: '999999999999999993600'
             });
         });
 
@@ -717,10 +716,8 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
 
     const validateAvailableDrawDownAmount = async (beneficiary, expectations) => {
         const _amount = await this.vestingContract.availableDrawDownAmount(beneficiary);
-        const _timeLastDrawn = await this.vestingContract.lastDrawnAt(beneficiary);
 
         _amount.should.be.bignumber.equal(expectations.amount);
-        _timeLastDrawn.should.be.bignumber.equal(expectations.timeLastDrawn);
     };
 
     const addDaysToTime = (unixTime, days) => {
