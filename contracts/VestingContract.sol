@@ -22,7 +22,11 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
 
     // Vested address to its schedule
     mapping(address => Schedule) public vestingSchedule;
+
+    // Vested address to total tokens drawn down
     mapping(address => uint256) public totalDrawn;
+
+    // Vested address to last drawn down time (seconds)
     mapping(address => uint256) public lastDrawnAt;
 
     // when updating beneficiary void the old schedule
@@ -55,7 +59,7 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         cliffDuration = _cliffDurationInSecs;
     }
 
-    function createVestingSchedule(address _beneficiary, uint256 _amount) external returns (bool) {
+    function createVestingSchedule(address _beneficiary, uint256 _amount) nonReentrant external returns (bool) {
         require(_beneficiary != address(0), "VestingContract::createVestingSchedule: Beneficiary cannot be empty");
         require(_amount > 0, "VestingContract::createVestingSchedule: Amount cannot be empty");
 
