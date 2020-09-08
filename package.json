@@ -4,7 +4,7 @@
   "description": "Sync DAO Solidity Smart Contracts",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npx buidler test"
   },
   "repository": {
     "type": "git",
