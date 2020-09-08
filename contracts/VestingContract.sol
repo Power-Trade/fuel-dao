@@ -96,6 +96,9 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         Schedule memory schedule = vestingSchedule[_currentBeneficiary];
         require(_drawDown(_currentBeneficiary), "VestingContract::_updateScheduleBeneficiary: Unable to drawn down");
 
+        // the old schedule is now void
+        voided[_currentBeneficiary] = true;
+
         // setup new schedule with the amount left after the previous beneficiary's draw down
         vestingSchedule[_newBeneficiary] = Schedule({
             amount : schedule.amount.sub(totalDrawn[_currentBeneficiary]),
@@ -106,16 +109,12 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
 
         // ensure the new beneficiary has delegate rights
         _updateVotingDelegation(_newBeneficiary);
-
-        // the old schedule is now void
-        voided[_currentBeneficiary] = true;
     }
 
     ///////////////
     // Accessors //
     ///////////////
 
-    // FIXME required?
     // for a given beneficiary
     function tokenBalance() external view returns (uint256) {
         return token.balanceOf(address(vestingSchedule[msg.sender].depositAccount));

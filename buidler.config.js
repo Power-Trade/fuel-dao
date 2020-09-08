@@ -16,7 +16,7 @@ module.exports = {
     },
     gasReporter: {
         currency: 'USD',
-        enabled: false
+        enabled: true
     },
     networks: {
         mainnet: {
