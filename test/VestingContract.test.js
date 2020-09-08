@@ -23,11 +23,12 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
     console.log('FIVE_THOUSAND_TOKENS', FIVE_THOUSAND_TOKENS.toString());
     console.log('_3333_THOUSAND_TOKENS', _3333_THOUSAND_TOKENS.toString());
 
-    const PERIOD_ONE_DAY_IN_SECONDS = new BN('86400');
-
     const _100days = 100;
     const _7days = 7;
     const _10days = 10;
+
+    const PERIOD_ONE_DAY_IN_SECONDS = new BN('86400');
+    const TEN_DAYS_IN_SECONDS = (_10days * parseInt(PERIOD_ONE_DAY_IN_SECONDS.toString()));
 
     beforeEach(async () => {
         this.token = await SyncToken.new(INITIAL_SUPPLY, admin, admin, {from: admin});
@@ -694,6 +695,51 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
             });
         });
     });
+
+    describe('Schedules with cliff durations', async () => {
+        beforeEach(async () => {
+            this.now = moment.unix(await latest()).unix().valueOf();
+
+            await createNewVestingContract({
+                _start: this.now,
+                _end: this.now + TEN_DAYS_IN_SECONDS,
+                _cliffDurationInSecs: 60 // just for ease of testing
+            });
+
+            await givenAVestingSchedule({
+                beneficiary: beneficiary1,
+                amount: TEN_THOUSAND_TOKENS,
+                from: admin
+            });
+
+            await this.vestingContract.fixTime(this.now + 30);
+        });
+
+        it('Should return 0 for amount available during the cliff period', async () => {
+            const amount = await this.vestingContract.availableDrawDownAmount(beneficiary1);
+            amount.should.be.bignumber.equal('0');
+        });
+
+        describe('should allow full draw after end date', async () => {
+            beforeEach(async () => {
+                // move to after
+                this._11DaysAfterScheduleStart = moment.unix(this.now).add(11, 'day').unix().valueOf();
+                await this.vestingContract.fixTime(this._11DaysAfterScheduleStart);
+            });
+    
+            it('should draw down full amount in one call', async () => {
+                (await this.vestingContract.tokenBalance({from: beneficiary1})).should.be.bignumber.equal(TEN_THOUSAND_TOKENS);
+    
+                (await this.token.balanceOf(beneficiary1)).should.be.bignumber.equal('0');
+    
+                await this.vestingContract.drawDown({from: beneficiary1});
+    
+                (await this.token.balanceOf(beneficiary1)).should.be.bignumber.equal(TEN_THOUSAND_TOKENS);
+    
+                (await this.vestingContract.tokenBalance()).should.be.bignumber.equal('0');
+            });
+        });
+    })
 
     const givenAVestingSchedule = async ({beneficiary, amount, from}) => {
         return this.vestingContract.createVestingSchedule(
