@@ -26,6 +26,8 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
 
     constructor(IERC20 _token, uint256 _start, uint256 _end, uint256 _cliffDuration) public {
         require(address(_token) != address(0));
+        require(_end > start, "VestingContract::constructor: Start must be before end");
+
         owner = msg.sender;
         token = _token;
         start = _start;
@@ -49,7 +51,11 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
     }
 
     function createVestingSchedule(address _beneficiary, uint256 _amount) external returns (bool) {
-        return _createVestingSchedule(_beneficiary, _amount);
+        bool result = _createVestingSchedule(_beneficiary, _amount);
+
+        //emit ScheduleCreated(_beneficiary, _amount);
+
+        return result;
     }
 
     function drawDown() nonReentrant external returns (bool) {
@@ -76,7 +82,7 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
         );
     }
 
-    function availableDrawDownAmount(address _beneficiary) external view returns (uint256 _amount, uint256 _timeLastDrawn, uint256 _drawDownRate) {
+    function availableDrawDownAmount(address _beneficiary) external view returns (uint256 _amount) {
         return _availableDrawDownAmount(_beneficiary);
     }
 
@@ -99,15 +105,13 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
         // Vest the tokens into the deposit account and delegate to the beneficiary
         require(token.transferFrom(msg.sender, address(this), _amount), "VestingContract::createVestingSchedule: Unable to escrow tokens");
 
-        emit ScheduleCreated(_beneficiary, _amount);
-
         return true;
     }
 
     function _drawDown(address _beneficiary) internal returns (bool) {
         require(vestedAmount[_beneficiary] > 0, "VestingContract::_drawDown: There is no schedule currently in flight");
 
-        (uint256 amount,,) = _availableDrawDownAmount(_beneficiary);
+        uint256 amount = _availableDrawDownAmount(_beneficiary);
         require(amount > 0, "VestingContract::_drawDown: No allowance left to withdraw");
 
         // Update last drawn to now
@@ -128,8 +132,14 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
         return block.timestamp;
     }
 
-    function _availableDrawDownAmount(address _beneficiary) internal view returns (uint256 _amount, uint256 _timeLastDrawn, uint256 _drawDownRate) {
-        require(start <= _getNow(), "VestingContract::_availableDrawDownAmount: Schedule not started");
+    function _availableDrawDownAmount(address _beneficiary) internal view returns (uint256 _amount) {
+        //////////////////////////
+        // Schedule not started //
+        //////////////////////////
+
+        if (_getNow() <= start) {
+            return 0;
+        }
 
         ///////////////////////
         // Cliff Period      //
@@ -137,7 +147,7 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
 
         if (_getNow() < start.add(cliffDuration)) {
             // the cliff period has not ended, no tokens to draw down
-            return (0, lastDrawnAt[_beneficiary], 0);
+            return 0;
         }
 
         ///////////////////////
@@ -145,8 +155,7 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
         ///////////////////////
 
         if (_getNow() > end) {
-            uint256 amount = vestedAmount[_beneficiary].sub(totalDrawn[_beneficiary]);
-            return (amount, lastDrawnAt[_beneficiary], 0);
+            return vestedAmount[_beneficiary].sub(totalDrawn[_beneficiary]);
         }
 
         ////////////////////////
@@ -163,6 +172,6 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
         uint256 drawDownRate = vestedAmount[_beneficiary].div(end.sub(start));
         uint256 amount = timePassedSinceLastInvocation.mul(drawDownRate);
 
-        return (amount, timeLastDrawn, drawDownRate);
+        return amount;
     }
 }

@@ -127,7 +127,7 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
 
                 await expectRevert(
                     this.vestingContract.drawDown({from: beneficiary1}),
-                    'No allowance left to withdraw'
+                    'VestingContract::_drawDown: No allowance left to withdraw'
                 );
             });
 
