@@ -28,9 +28,9 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
     const _7days = 7;
     const _10days = 10;
 
-
     const PERIOD_ONE_DAY_IN_SECONDS = new BN('86400');
     const TEN_DAYS_IN_SECONDS = (_10days * parseInt(PERIOD_ONE_DAY_IN_SECONDS.toString()));
+    const SEVEN_DAYS_IN_SECONDS = (_7days * parseInt(PERIOD_ONE_DAY_IN_SECONDS.toString()));
 
     const fromAdmin = {from: admin};
     const fromRandom = {from: random};
@@ -88,13 +88,21 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
         vestingAllowance.should.be.bignumber.equal(INITIAL_SUPPLY);
     });
 
-    it.skip('should return token address', async () => {
+    it('should return token address', async () => {
         const token = await this.vestingContract.token();
         token.should.be.equal(this.token.address);
     });
 
-  it.skip('reverts when trying to create the contract with zero address token', async () => {
-    await expectRevert.unspecified(VestingContract.new(constants.ZERO_ADDRESS, this.baseDepositAccount.address, fromAdmin))
+  it('reverts when trying to create the contract with zero address token', async () => {
+    await expectRevert.unspecified(
+        VestingContract.new(
+            constants.ZERO_ADDRESS, 
+            0,
+            0,
+            0, 
+            fromAdmin
+        )
+    )
   })
 
     describe('reverts', async () => {
@@ -417,21 +425,19 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
         });
     });
 
-    describe.skip('single schedule - future start date', async () => {
+    describe('single schedule - future start date', async () => {
         beforeEach(async () => {
             this.now = await latest();
             this.onyDayFromNow = moment.unix(this.now).add(1, 'days').unix().valueOf();
 
-            await this.vestingContract.createVestingScheduleConfig(
-                SCHEDULE_2_ID,
-                this.onyDayFromNow,
-                _7days,
-                0,
-                fromAdmin
-            );
+            await createNewVestingContract({
+                _start: this.onyDayFromNow,
+                _end: this.onyDayFromNow + SEVEN_DAYS_IN_SECONDS,
+                _cliffDurationInSecs: 0
+            });
 
             await givenAVestingSchedule({
-                scheduleConfigId: SCHEDULE_2_ID,
+                beneficiary: beneficiary1,
                 amount: FIVE_THOUSAND_TOKENS,
                 ...fromAdmin
             });
@@ -463,10 +469,8 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
         });
 
         it('validateAvailableDrawDownAmount() is zero as not started yet', async () => {
-            await expectRevert(
-                this.vestingContract.availableDrawDownAmount(beneficiary1),
-                'Schedule not started'
-            );
+            const amount = await this.vestingContract.availableDrawDownAmount(beneficiary1);
+            amount.should.be.bignumber.equal('0');
         });
     });
 
