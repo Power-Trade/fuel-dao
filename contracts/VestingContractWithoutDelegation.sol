@@ -25,11 +25,12 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
     IERC20 public token;
 
     constructor(IERC20 _token, uint256 _start, uint256 _end, uint256 _cliffDuration) public {
-        require(address(_token) != address(0));
-        require(_end > start, "VestingContract::constructor: Start must be before end");
+        require(address(_token) != address(0), "VestingContract::constructor: Invalid token");
+        require(_end >= _start, "VestingContract::constructor: Start must be before end");
 
-        owner = msg.sender;
         token = _token;
+        owner = msg.sender;
+
         start = _start;
         end = _end;
         cliffDuration = _cliffDuration;
@@ -163,10 +164,10 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
         ////////////////////////
 
         // Work out when the last invocation was
-        uint256 timeLastDrawn = lastDrawnAt[_beneficiary] == 0 ? start : lastDrawnAt[_beneficiary];
+        uint256 timeLastDrawnOrStart = lastDrawnAt[_beneficiary] == 0 ? start : lastDrawnAt[_beneficiary];
 
         // Find out how much time has past since last invocation
-        uint256 timePassedSinceLastInvocation = _getNow().sub(timeLastDrawn);
+        uint256 timePassedSinceLastInvocation = _getNow().sub(timeLastDrawnOrStart);
 
         // Work out how many due tokens - time passed * rate per second
         uint256 drawDownRate = vestedAmount[_beneficiary].div(end.sub(start));

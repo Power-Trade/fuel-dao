@@ -5,14 +5,12 @@ const {latest} = time;
 
 require('chai').should();
 
-const VestingContract = artifacts.require('VestingContractWithoutDelegationFixedTime')
-const ActualVestingContract = artifacts.require('VestingContractWithoutDelegation')
-const SyncToken = artifacts.require('SyncToken')
+const VestingContract = artifacts.require('VestingContractWithoutDelegationFixedTime');
+const SyncToken = artifacts.require('SyncToken');
 
 contract('VestingContractWithoutDelegation', function ([_, admin, random, beneficiary1, beneficiary2, beneficiary3]) {
     const DECIMALS = 18;
     const TEN_BILLION = new BN(10000000);
-    const FIFTY_BILLION = new BN(50000000000);
     const INITIAL_SUPPLY = TEN_BILLION.mul(new BN(10).pow(new BN(DECIMALS)));
 
     const TEN_THOUSAND_TOKENS = new BN(10000).mul(new BN(10).pow(new BN(DECIMALS)));
@@ -63,23 +61,22 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
         const creatorBalance = await this.token.balanceOf(admin);
         creatorBalance.should.be.bignumber.equal(INITIAL_SUPPLY);
 
-
         this.now = moment.unix(await latest()).unix().valueOf();
 
         this.start = this.now;
         this.end = this.now + TEN_DAYS_IN_SECONDS;
         this.cliffDuration = 0;
 
-    // Construct new vesting contract
-    this.vestingContract = await VestingContract.new(
-      this.token.address,
-      this.start,
-      this.end,
-      this.cliffDuration,
-      fromAdmin
-    );
+        // Construct new vesting contract
+        this.vestingContract = await VestingContract.new(
+            this.token.address,
+            this.start,
+            this.end,
+            this.cliffDuration,
+            fromAdmin
+        );
 
-    await this.vestingContract.fixTime(this.now);
+        await this.vestingContract.fixTime(this.now);
 
         // Ensure vesting contract approved to move tokens
         await this.token.approve(this.vestingContract.address, INITIAL_SUPPLY, fromAdmin);
@@ -97,30 +94,30 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
     describe('reverts', async () => {
         describe('contract creation reverts when', async () => {
             it('trying to create the contract with zero address token', async () => {
-                await expectRevert.unspecified(
-                    VestingContract.new(
-                        constants.ZERO_ADDRESS, 
-                        0,
-                        0,
-                        0, 
-                        fromAdmin
-                    )
-                )
-              })
-
-              // fixme - why won't this work? end is less than start?
-              it.skip('trying to create the contract where the end date is before the start', async () => {
                 await expectRevert(
-                    ActualVestingContract.new(
+                    VestingContract.new(
+                        constants.ZERO_ADDRESS,
+                        0,
+                        0,
+                        0,
+                        fromAdmin
+                    ),
+                    "VestingContract::constructor: Invalid token"
+                );
+            });
+
+            it('trying to create the contract where the end date is before the start', async () => {
+                await expectRevert(
+                    VestingContract.new(
                         this.token.address,
-                        new BN('10'),
-                        new BN('2'),
+                        new BN('1000'),
+                        new BN('900'),
                         new BN('0'),
                         fromAdmin
                     ),
                     "VestingContract::constructor: Start must be before end"
-                )
-              })
+                );
+            });
         });
 
         describe('createVestingSchedule() reverts when', async () => {
@@ -218,7 +215,7 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
                 _end: this.now + TEN_DAYS_IN_SECONDS,
                 _cliffDurationInSecs: 0
             });
-            
+
             this.transaction = await givenAVestingSchedule({
                 beneficiary: beneficiary1,
                 amount: TEN_THOUSAND_TOKENS,
@@ -340,7 +337,7 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
                         .should.be.bignumber.equal(this.expectedTotalDrawnAfter1Day);
 
                     (await this.token.balanceOf(this.vestingContract.address))
-                         .should.be.bignumber.equal(TEN_THOUSAND_TOKENS.sub(this.expectedTotalDrawnAfter1Day));
+                        .should.be.bignumber.equal(TEN_THOUSAND_TOKENS.sub(this.expectedTotalDrawnAfter1Day));
 
                     (await this.vestingContract.remainingBalance(beneficiary1))
                         .should.be.bignumber.equal(TEN_THOUSAND_TOKENS.sub(this.expectedTotalDrawnAfter1Day));
@@ -667,31 +664,31 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
                 this._11DaysAfterScheduleStart = moment.unix(this.now).add(11, 'day').unix().valueOf();
                 await this.vestingContract.fixTime(this._11DaysAfterScheduleStart);
             });
-    
+
             it('should draw down full amount in one call', async () => {
                 (await this.vestingContract.tokenBalance()).should.be.bignumber.equal(TEN_THOUSAND_TOKENS);
-    
+
                 (await this.token.balanceOf(beneficiary1)).should.be.bignumber.equal('0');
-    
+
                 await this.vestingContract.drawDown({from: beneficiary1});
-    
+
                 (await this.token.balanceOf(beneficiary1)).should.be.bignumber.equal(TEN_THOUSAND_TOKENS);
-    
+
                 (await this.vestingContract.tokenBalance({from: beneficiary1})).should.be.bignumber.equal('0');
             });
         });
-    })
+    });
 
-  describe('VestingContract', async () => {
-    beforeEach(async () => {
-      this.vestingContract = await ActualVestingContract.new(
-          this.token.address,
-          0,
-          1,
-          0,
-        fromAdmin
-        )
-    })
+    describe('VestingContract', async () => {
+        beforeEach(async () => {
+            this.vestingContract = await VestingContract.new(
+                this.token.address,
+                0,
+                1,
+                0,
+                fromAdmin
+            );
+        });
 
         it('returns zero for empty vesting schedule', async () => {
             const _amount = await this.vestingContract.availableDrawDownAmount(beneficiary1);

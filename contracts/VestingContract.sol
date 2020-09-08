@@ -47,8 +47,8 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         uint256 _end,
         uint256 _cliffDurationInSecs
     ) public {
-        require(address(_token) != address(0));
-        require(end >= start, "VestingContract::constructor: Start must be before end");
+        require(address(_token) != address(0), "VestingContract::constructor: Invalid token");
+        require(_end >= _start, "VestingContract::constructor: Start must be before end");
 
         token = _token;
         owner = msg.sender;
@@ -124,22 +124,17 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         return token.balanceOf(address(vestingSchedule[msg.sender].depositAccount));
     }
 
-    // FIXME move to vestingScheduleForBeneficiary?
-    function depositAccountAddress() external view returns (address) {
-        Schedule memory schedule = vestingSchedule[msg.sender];
-        return address(schedule.depositAccount);
-    }
-
     function vestingScheduleForBeneficiary(address _beneficiary)
     external view
-    returns (uint256 _amount, uint256 _totalDrawn, uint256 _lastDrawnAt, uint256 _drawDownRate, uint256 _remainingBalance) {
+    returns (uint256 _amount, uint256 _totalDrawn, uint256 _lastDrawnAt, uint256 _drawDownRate, uint256 _remainingBalance, address _depositAccountAddress) {
         Schedule memory schedule = vestingSchedule[_beneficiary];
         return (
         schedule.amount,
         totalDrawn[_beneficiary],
         lastDrawnAt[_beneficiary],
         schedule.amount.div(end.sub(start)),
-        schedule.amount.sub(totalDrawn[_beneficiary])
+        schedule.amount.sub(totalDrawn[_beneficiary]),
+        address(schedule.depositAccount)
         );
     }
 
@@ -214,10 +209,10 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         ////////////////////////
 
         // Work out when the last invocation was
-        uint256 timeLastDrawn = lastDrawnAt[_beneficiary] == 0 ? start : lastDrawnAt[_beneficiary];
+        uint256 timeLastDrawnOrStart = lastDrawnAt[_beneficiary] == 0 ? start : lastDrawnAt[_beneficiary];
 
         // Find out how much time has past since last invocation
-        uint256 timePassedSinceLastInvocation = _getNow().sub(timeLastDrawn);
+        uint256 timePassedSinceLastInvocation = _getNow().sub(timeLastDrawnOrStart);
 
         // Work out how many due tokens - time passed * rate per second
         uint256 drawDownRate = schedule.amount.div(end.sub(start));

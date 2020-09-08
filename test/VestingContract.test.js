@@ -7,7 +7,6 @@ require('chai').should();
 
 const VestingDepositAccount = artifacts.require('VestingDepositAccount');
 const VestingContract = artifacts.require('VestingContractWithFixedTime');
-const ActualVestingContract = artifacts.require('VestingContract');
 const SyncToken = artifacts.require('SyncToken');
 
 contract('VestingContract', function ([_, admin, random, beneficiary1, beneficiary2, beneficiary3]) {
@@ -78,7 +77,10 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
     });
 
     it('reverts when trying to create the contract with zero address token', async () => {
-        await expectRevert.unspecified(VestingContract.new(constants.ZERO_ADDRESS, this.baseDepositAccount.address, 0, 0, 0, {from: admin}));
+        await expectRevert(
+            VestingContract.new(constants.ZERO_ADDRESS, this.baseDepositAccount.address, 0, 0, 0, {from: admin}),
+            "VestingContract::constructor: Invalid token"
+        );
     });
 
     describe('reverts', async () => {
@@ -229,7 +231,8 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
         });
 
         it('beneficiary 1 balance should equal vested tokens when called direct', async () => {
-            const tokenBalance = await this.token.balanceOf(await this.vestingContract.depositAccountAddress({from: beneficiary1}));
+            const {_depositAccountAddress} = await this.vestingContract.vestingScheduleForBeneficiary(beneficiary1);
+            const tokenBalance = await this.token.balanceOf(_depositAccountAddress);
             tokenBalance.should.be.bignumber.equal(TEN_THOUSAND_TOKENS);
         });
 
@@ -237,7 +240,8 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
             const tokenBalance = await this.vestingContract.tokenBalance({from: beneficiary1});
             tokenBalance.should.be.bignumber.equal(TEN_THOUSAND_TOKENS);
 
-            const tokenBalanceDirect = await this.token.balanceOf(await this.vestingContract.depositAccountAddress({from: beneficiary1}));
+            const {_depositAccountAddress} = await this.vestingContract.vestingScheduleForBeneficiary(beneficiary1);
+            const tokenBalanceDirect = await this.token.balanceOf(_depositAccountAddress);
             tokenBalanceDirect.should.be.bignumber.equal(tokenBalance);
         });
 
@@ -358,7 +362,8 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
                     (await this.token.balanceOf(beneficiary1))
                         .should.be.bignumber.equal(this.expectedTotalDrawnAfter1Day);
 
-                    (await this.token.balanceOf(await this.vestingContract.depositAccountAddress({from: beneficiary1})))
+                    const {_depositAccountAddress} = await this.vestingContract.vestingScheduleForBeneficiary(beneficiary1);
+                    (await this.token.balanceOf(_depositAccountAddress))
                         .should.be.bignumber.equal(TEN_THOUSAND_TOKENS.sub(this.expectedTotalDrawnAfter1Day));
 
                     (await this.vestingContract.remainingBalance(beneficiary1))
@@ -403,7 +408,8 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
                         (await this.token.balanceOf(beneficiary1))
                             .should.be.bignumber.equal(expectedTotalDrawnAfter5Day);
 
-                        (await this.token.balanceOf(await this.vestingContract.depositAccountAddress({from: beneficiary1})))
+                        const {_depositAccountAddress} = await this.vestingContract.vestingScheduleForBeneficiary(beneficiary1);
+                        (await this.token.balanceOf(_depositAccountAddress))
                             .should.be.bignumber.equal(TEN_THOUSAND_TOKENS.sub(expectedTotalDrawnAfter5Day));
 
                         (await this.vestingContract.remainingBalance(beneficiary1))
