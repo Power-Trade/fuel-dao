@@ -30,9 +30,30 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
 
 
     const PERIOD_ONE_DAY_IN_SECONDS = new BN('86400');
+    const TEN_DAYS_IN_SECONDS = (_10days * parseInt(PERIOD_ONE_DAY_IN_SECONDS.toString()));
 
     const fromAdmin = {from: admin};
     const fromRandom = {from: random};
+
+    const createNewVestingContract = async ({_start, _end, _cliffDurationInSecs}) => {
+        this.now = _start;
+        this.vestingContract = await VestingContract.new(
+            this.token.address,
+            _start,
+            _end,
+            _cliffDurationInSecs,
+            {from: admin}
+        );
+
+        await this.vestingContract.fixTime(this.now);
+
+        // Ensure vesting contract approved to move tokens
+        await this.token.approve(this.vestingContract.address, INITIAL_SUPPLY, {from: admin});
+
+        // Ensure allowance set for vesting contract
+        const vestingAllowance = await this.token.allowance(admin, this.vestingContract.address);
+        vestingAllowance.should.be.bignumber.equal(INITIAL_SUPPLY);
+    };
 
     beforeEach(async () => {
         this.token = await SyncToken.new(INITIAL_SUPPLY, admin, admin, fromAdmin);
@@ -45,7 +66,7 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
         this.now = moment.unix(await latest()).unix().valueOf();
 
         this.start = this.now;
-        this.end = this.now + (_10days * parseInt(PERIOD_ONE_DAY_IN_SECONDS.toString()));
+        this.end = this.now + TEN_DAYS_IN_SECONDS;
         this.cliffDuration = 0;
 
     // Construct new vesting contract
@@ -163,11 +184,16 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
 
     });
 
-    describe.skip('single schedule - incomplete draw down', async () => {
+    describe('single schedule - incomplete draw down', async () => {
         beforeEach(async () => {
             this.now = moment.unix(await latest()).add(1, 'day').unix().valueOf();
 
-            await this.vestingContract.fixTime(this.now);
+            await createNewVestingContract({
+                _start: this.now,
+                _end: this.now + TEN_DAYS_IN_SECONDS,
+                _cliffDurationInSecs: 0
+            });
+            
             this.transaction = await givenAVestingSchedule({
                 beneficiary: beneficiary1,
                 amount: TEN_THOUSAND_TOKENS,
@@ -225,8 +251,7 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
             it('should emit DrawDown events', async () => {
                 expectEvent(this.transaction, 'DrawDown', {
                     _beneficiary: beneficiary1,
-                    _amount: '999999999999999993600',
-                    _time: this._1DayInTheFuture.toString()
+                    _amount: '999999999999999993600'
                 });
             });
 
@@ -235,7 +260,7 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
             });
 
             it('should reduce validateAvailableDrawDownAmount()', async () => {
-                const {_amount} = await this.vestingContract.availableDrawDownAmount(beneficiary1);
+                const _amount = await this.vestingContract.availableDrawDownAmount(beneficiary1);
                 _amount.should.be.bignumber.equal('0');
             });
 
@@ -289,16 +314,15 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
                     (await this.token.balanceOf(beneficiary1))
                         .should.be.bignumber.equal(this.expectedTotalDrawnAfter1Day);
 
-                    (await this.token.balanceOf(await this.vestingContract.depositAccountAddress({from: beneficiary1})))
-                        .should.be.bignumber.equal(TEN_THOUSAND_TOKENS.sub(this.expectedTotalDrawnAfter1Day));
+                    (await this.token.balanceOf(this.vestingContract.address))
+                         .should.be.bignumber.equal(TEN_THOUSAND_TOKENS.sub(this.expectedTotalDrawnAfter1Day));
 
                     (await this.vestingContract.remainingBalance(beneficiary1))
                         .should.be.bignumber.equal(TEN_THOUSAND_TOKENS.sub(this.expectedTotalDrawnAfter1Day));
 
                     expectEvent(this.transaction, 'DrawDown', {
                         _beneficiary: beneficiary1,
-                        _amount: this.expectedTotalDrawnAfter1Day,
-                        _time: this._1DayAfterScheduleStart.toString()
+                        _amount: this.expectedTotalDrawnAfter1Day
                     });
                 });
 
@@ -334,7 +358,7 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
                         (await this.token.balanceOf(beneficiary1))
                             .should.be.bignumber.equal(expectedTotalDrawnAfter5Day);
 
-                        (await this.token.balanceOf(await this.vestingContract.depositAccountAddress({from: beneficiary1})))
+                        (await this.token.balanceOf(this.vestingContract.address))
                             .should.be.bignumber.equal(TEN_THOUSAND_TOKENS.sub(expectedTotalDrawnAfter5Day));
 
                         (await this.vestingContract.remainingBalance(beneficiary1))
@@ -342,8 +366,7 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
 
                         expectEvent(this.transaction, 'DrawDown', {
                             _beneficiary: beneficiary1,
-                            _amount: this.expectedTotalDrawnAfter1Day.mul(new BN('4')),
-                            _time: this._5DaysAfterScheduleStart.toString()
+                            _amount: this.expectedTotalDrawnAfter1Day.mul(new BN('4'))
                         });
                     });
 
@@ -385,8 +408,7 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
 
                             expectEvent(this.transaction, 'DrawDown', {
                                 _beneficiary: beneficiary1,
-                                _amount: TEN_THOUSAND_TOKENS.sub(this.expectedTotalDrawnAfter1Day.mul(new BN('5'))),
-                                _time: this._11DaysAfterScheduleStart.toString()
+                                _amount: TEN_THOUSAND_TOKENS.sub(this.expectedTotalDrawnAfter1Day.mul(new BN('5')))
                             });
                         });
                     });
