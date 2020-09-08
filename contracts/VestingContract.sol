@@ -164,6 +164,9 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         // Increase total drawn amount
         totalDrawn[_beneficiary] = totalDrawn[_beneficiary].add(amount);
 
+        // Safety measure - this should never trigger
+        require(totalDrawn[_beneficiary] <= schedule.amount, "VestingContract::_drawDown: Safety Mechanism - Drawn exceeded Amount Vested");
+
         // Issue tokens to beneficiary
         require(schedule.depositAccount.transferToBeneficiary(amount), "VestingContract::_drawDown: Unable to transfer tokens");
 

@@ -7,9 +7,9 @@ import "./IERC20.sol";
 contract VestingContractWithoutDelegation is ReentrancyGuard {
     using SafeMath for uint256;
 
-    event ScheduleCreated(address indexed _beneficiary, uint256 indexed _amount);
+    event ScheduleCreated(address indexed _beneficiary);
 
-    event DrawDown(address indexed _beneficiary, uint256 indexed _amount, uint256 indexed _time);
+    event DrawDown(address indexed _beneficiary, uint256 indexed _amount);
 
     uint256 public start;
     uint256 public end;
@@ -51,11 +51,7 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
     }
 
     function createVestingSchedule(address _beneficiary, uint256 _amount) external returns (bool) {
-        bool result = _createVestingSchedule(_beneficiary, _amount);
-
-        //emit ScheduleCreated(_beneficiary, _amount);
-
-        return result;
+        return _createVestingSchedule(_beneficiary, _amount);
     }
 
     function drawDown() nonReentrant external returns (bool) {
@@ -105,6 +101,8 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
         // Vest the tokens into the deposit account and delegate to the beneficiary
         require(token.transferFrom(msg.sender, address(this), _amount), "VestingContract::createVestingSchedule: Unable to escrow tokens");
 
+        emit ScheduleCreated(_beneficiary);
+
         return true;
     }
 
@@ -120,10 +118,13 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
         // Increase total drawn amount
         totalDrawn[_beneficiary] = totalDrawn[_beneficiary].add(amount);
 
+        // Safety measure - this should never trigger
+        require(totalDrawn[_beneficiary] <= vestedAmount[_beneficiary], "VestingContract::_drawDown: Safety Mechanism - Drawn exceeded Amount Vested");
+
         // Issue tokens to beneficiary
         require(token.transfer(_beneficiary, amount), "VestingContract::_drawDown: Unable to transfer tokens");
 
-        emit DrawDown(_beneficiary, amount, _getNow());
+        emit DrawDown(_beneficiary, amount);
 
         return true;
     }
