@@ -167,32 +167,17 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
         beforeEach(async () => {
             this.now = moment.unix(await latest()).add(1, 'day').unix().valueOf();
 
-            await this.vestingContract.createVestingScheduleConfig(
-                SCHEDULE_2_ID,
-                this.now,
-                _10days,
-                0,
-                fromAdmin
-            );
-
             await this.vestingContract.fixTime(this.now);
             this.transaction = await givenAVestingSchedule({
-                scheduleConfigId: SCHEDULE_2_ID,
+                beneficiary: beneficiary1,
+                amount: TEN_THOUSAND_TOKENS,
                 ...fromAdmin
             });
         });
 
-        it('beneficiary 1 balance should equal vested tokens when called direct', async () => {
-            const tokenBalance = await this.token.balanceOf(await this.vestingContract.depositAccountAddress({from: beneficiary1}));
+        it('vesting contract balance should equal vested tokens', async () => {
+            const tokenBalance = await this.vestingContract.tokenBalance();
             tokenBalance.should.be.bignumber.equal(TEN_THOUSAND_TOKENS);
-        });
-
-        it('vesting contract balance should equal vested tokens when proxied through', async () => {
-            const tokenBalance = await this.vestingContract.tokenBalance({from: beneficiary1});
-            tokenBalance.should.be.bignumber.equal(TEN_THOUSAND_TOKENS);
-
-            const tokenBalanceDirect = await this.token.balanceOf(await this.vestingContract.depositAccountAddress({from: beneficiary1}));
-            tokenBalanceDirect.should.be.bignumber.equal(tokenBalance);
         });
 
         it('should be able to get my balance', async () => {
@@ -202,24 +187,15 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
 
         it('correctly emits ScheduleCreated log', async () => {
             expectEvent(this.transaction, 'ScheduleCreated', {
-                _beneficiary: beneficiary1,
-                _amount: TEN_THOUSAND_TOKENS.toString(),
-                //_start: this.now.toString(),
-                //_duration: _10days.toString()
+                _beneficiary: beneficiary1
             });
         });
 
         it('vestingScheduleForBeneficiary()', async () => {
-            const start = new BN(this.now.toString());
-            const totalDuration = new BN(`${_10days}`).mul(PERIOD_ONE_DAY_IN_SECONDS);
-            const end = start.add(totalDuration);
             await validateVestingScheduleForBeneficiary(beneficiary1, {
-                start,
-                end,
                 amount: TEN_THOUSAND_TOKENS,
                 totalDrawn: '0',
                 lastDrawnAt: '0',
-                drawDownRate: TEN_THOUSAND_TOKENS.div(totalDuration),
                 remainingBalance: TEN_THOUSAND_TOKENS
             });
         });
@@ -229,20 +205,13 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
             lastDrawDown.should.be.bignumber.equal('0');
         });
 
-        it('PERIOD_ONE_DAY_IN_SECONDS()', async () => {
-            const PERIOD_ONE_DAY_IN_SECONDS = await this.vestingContract.PERIOD_ONE_DAY_IN_SECONDS();
-            PERIOD_ONE_DAY_IN_SECONDS.should.be.bignumber.equal('86400');
-        });
-
         it('validateAvailableDrawDownAmount()', async () => {
             // move forward 1 day
             const _1DayInTheFuture = moment.unix(this.now).add(1, 'day').unix().valueOf();
             await this.vestingContract.fixTime(_1DayInTheFuture);
 
             await validateAvailableDrawDownAmount(beneficiary1, {
-                amount: '999999999999999993600',
-                timeLastDrawn: this.now.toString(),
-                drawDownRate: '11574074074074074'
+                amount: new BN('999999999999999993600'),
             });
         });
 
@@ -482,6 +451,8 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
     describe('single schedule - starts now - full draw after end date', async () => {
         beforeEach(async () => {
             this.transaction = await givenAVestingSchedule({
+                beneficiary: beneficiary1,
+                amount: TEN_THOUSAND_TOKENS,
                 ...fromAdmin
             });
 
@@ -980,7 +951,7 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
     };
 
     const validateVestingScheduleForBeneficiary = async (beneficiary, expectations) => {
-        const {_scheduleConfigId, _amount, _totalDrawn, _lastDrawnAt, _drawDownRate, _remainingBalance} = await this.vestingContract.vestingScheduleForBeneficiary(beneficiary);
+        const {_amount, _totalDrawn, _lastDrawnAt, _remainingBalance} = await this.vestingContract.vestingScheduleForBeneficiary(beneficiary);
 
         const scheduleRemainingBalance = await this.vestingContract.remainingBalance(beneficiary);
 
@@ -990,18 +961,13 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
 
         _lastDrawnAt.should.be.bignumber.equal(expectations.lastDrawnAt);
 
-        _drawDownRate.should.be.bignumber.equal(expectations.drawDownRate);
-
         _remainingBalance.should.be.bignumber.equal(expectations.remainingBalance);
         scheduleRemainingBalance.should.be.bignumber.equal(expectations.remainingBalance);
     };
 
     const validateAvailableDrawDownAmount = async (beneficiary, expectations) => {
-        const {_amount, _timeLastDrawn, _drawDownRate} = await this.vestingContract.availableDrawDownAmount(beneficiary);
-
+        const _amount = await this.vestingContract.availableDrawDownAmount(beneficiary);
         _amount.should.be.bignumber.equal(expectations.amount);
-        _timeLastDrawn.should.be.bignumber.equal(expectations.timeLastDrawn);
-        _drawDownRate.should.be.bignumber.equal(expectations.drawDownRate);
     };
 
     const addDaysToTime = (unixTime, days) => {

@@ -62,7 +62,6 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
     // Accessors //
     ///////////////
 
-    // for a given beneficiary
     function tokenBalance() external view returns (uint256) {
         return token.balanceOf(address(this));
     }
