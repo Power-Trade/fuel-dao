@@ -94,19 +94,35 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
         token.should.be.equal(this.token.address);
     });
 
-  it('reverts when trying to create the contract with zero address token', async () => {
-    await expectRevert.unspecified(
-        VestingContract.new(
-            constants.ZERO_ADDRESS, 
-            0,
-            0,
-            0, 
-            fromAdmin
-        )
-    )
-  })
-
     describe('reverts', async () => {
+        describe('contract creation reverts when', async () => {
+            it('trying to create the contract with zero address token', async () => {
+                await expectRevert.unspecified(
+                    VestingContract.new(
+                        constants.ZERO_ADDRESS, 
+                        0,
+                        0,
+                        0, 
+                        fromAdmin
+                    )
+                )
+              })
+
+              // fixme - why won't this work? end is less than start?
+              it.skip('trying to create the contract where the end date is before the start', async () => {
+                await expectRevert(
+                    ActualVestingContract.new(
+                        this.token.address,
+                        new BN('10'),
+                        new BN('2'),
+                        new BN('0'),
+                        fromAdmin
+                    ),
+                    "VestingContract::constructor: Start must be before end"
+                )
+              })
+        });
+
         describe('createVestingSchedule() reverts when', async () => {
             it('specifying a zero address beneficiary', async () => {
                 await expectRevert(
@@ -569,6 +585,102 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
             });
         });
     });
+
+    describe('setting up multiple schedules in a single transaction', async () => {
+        beforeEach(async () => {
+            this.now = moment.unix(await latest()).unix().valueOf();
+
+            await createNewVestingContract({
+                _start: this.now,
+                _end: this.now + TEN_DAYS_IN_SECONDS,
+                _cliffDurationInSecs: 0
+            });
+
+            await this.vestingContract.fixTime(this.now);
+        });
+
+        it('reverts when the arrays are empty', async () => {
+            await expectRevert(
+                this.vestingContract.createVestingSchedules(
+                    [],
+                    [],
+                    fromAdmin
+                ),
+                "VestingContract::createVestingSchedules: Empty Data"
+            );
+        });
+
+        it('reverts when the arrays are of differing lengths', async () => {
+            await expectRevert(
+                this.vestingContract.createVestingSchedules(
+                    [beneficiary1],
+                    [new BN('1'), new BN('2')],
+                    fromAdmin
+                ),
+                "VestingContract::createVestingSchedules: Array lengths do not match"
+            );
+        });
+
+        it('sets up multiple schedules successfully', async () => {
+            await this.vestingContract.createVestingSchedules(
+                [
+                    beneficiary1,
+                    beneficiary2,
+                    beneficiary3
+                ],
+                [
+                    TEN_THOUSAND_TOKENS,
+                    FIVE_THOUSAND_TOKENS,
+                    _3333_THOUSAND_TOKENS
+                ],
+                fromAdmin
+            );
+        });
+    });
+
+    describe('Schedules with cliff durations', async () => {
+        beforeEach(async () => {
+            this.now = moment.unix(await latest()).unix().valueOf();
+
+            await createNewVestingContract({
+                _start: this.now,
+                _end: this.now + TEN_DAYS_IN_SECONDS,
+                _cliffDurationInSecs: 60 // just for ease of testing
+            });
+
+            await givenAVestingSchedule({
+                beneficiary: beneficiary1,
+                amount: TEN_THOUSAND_TOKENS,
+                ...fromAdmin
+            });
+
+            await this.vestingContract.fixTime(this.now + 30);
+        });
+
+        it('Should return 0 for amount available during the cliff period', async () => {
+            const amount = await this.vestingContract.availableDrawDownAmount(beneficiary1);
+            amount.should.be.bignumber.equal('0');
+        });
+
+        describe('should allow full draw after end date', async () => {
+            beforeEach(async () => {
+                this._11DaysAfterScheduleStart = moment.unix(this.now).add(11, 'day').unix().valueOf();
+                await this.vestingContract.fixTime(this._11DaysAfterScheduleStart);
+            });
+    
+            it('should draw down full amount in one call', async () => {
+                (await this.vestingContract.tokenBalance()).should.be.bignumber.equal(TEN_THOUSAND_TOKENS);
+    
+                (await this.token.balanceOf(beneficiary1)).should.be.bignumber.equal('0');
+    
+                await this.vestingContract.drawDown({from: beneficiary1});
+    
+                (await this.token.balanceOf(beneficiary1)).should.be.bignumber.equal(TEN_THOUSAND_TOKENS);
+    
+                (await this.vestingContract.tokenBalance({from: beneficiary1})).should.be.bignumber.equal('0');
+            });
+        });
+    })
 
   describe('VestingContract', async () => {
     beforeEach(async () => {
