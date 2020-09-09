@@ -60,6 +60,7 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
     }
 
     function createVestingSchedule(address _beneficiary, uint256 _amount) nonReentrant external returns (bool) {
+        require(msg.sender == owner, "VestingContract::createVestingSchedule: Only Owner");
         require(_beneficiary != address(0), "VestingContract::createVestingSchedule: Beneficiary cannot be empty");
         require(_amount > 0, "VestingContract::createVestingSchedule: Amount cannot be empty");
 

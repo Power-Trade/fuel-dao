@@ -40,6 +40,7 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
         address[] calldata _beneficiaries,
         uint256[] calldata _amounts
     ) external returns (bool) {
+        require(msg.sender == owner, "VestingContract::createVestingSchedules: Only Owner");
         require(_beneficiaries.length > 0, "VestingContract::createVestingSchedules: Empty Data");
         require(
             _beneficiaries.length == _amounts.length,
@@ -58,6 +59,7 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
     }
 
     function createVestingSchedule(address _beneficiary, uint256 _amount) external returns (bool) {
+        require(msg.sender == owner, "VestingContract::createVestingSchedule: Only Owner");
         return _createVestingSchedule(_beneficiary, _amount);
     }
 

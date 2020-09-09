@@ -1,4 +1,5 @@
 require('dotenv').config();
+usePlugin("@nomiclabs/buidler-waffle");
 usePlugin("@nomiclabs/buidler-truffle5");
 usePlugin("buidler-gas-reporter");
 usePlugin("solidity-coverage");
