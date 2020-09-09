@@ -35,8 +35,8 @@ async function main() {
     // approve
     const token = new ethers.Contract(
       syncTokenAddress,
-      //abi,
-      //provider
+      [], //abi
+      null //provider
     );
 
     console.log('Lets set up some vesting schedules based on vesting_schedules.csv');

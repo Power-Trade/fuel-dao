@@ -121,6 +121,17 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
         });
 
         describe('createVestingSchedule() reverts when', async () => {
+            it('Not the owner', async () => {
+                await expectRevert(
+                    givenAVestingSchedule({
+                        beneficiary: beneficiary1,
+                        amount: TEN_THOUSAND_TOKENS,
+                        from: random,
+                    }),
+                    'VestingContract::createVestingSchedule: Only Owner'
+                );
+            });
+
             it('specifying a zero address beneficiary', async () => {
                 await expectRevert(
                     givenAVestingSchedule({
@@ -594,6 +605,17 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
             });
 
             await this.vestingContract.fixTime(this.now);
+        });
+
+        it('reverts when not owner', async () => {
+            await expectRevert(
+                this.vestingContract.createVestingSchedules(
+                    [],
+                    [],
+                    {from: random}
+                ),
+                "VestingContract::createVestingSchedules: Only Owner"
+            );
         });
 
         it('reverts when the arrays are empty', async () => {

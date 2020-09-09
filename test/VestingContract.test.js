@@ -103,6 +103,17 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
         });
 
         describe('createVestingSchedule() reverts when', async () => {
+            it('Not the owner', async () => {
+                await expectRevert(
+                    givenAVestingSchedule({
+                        beneficiary: beneficiary1,
+                        amount: TEN_THOUSAND_TOKENS,
+                        from: random,
+                    }),
+                    'VestingContract::createVestingSchedule: Only Owner'
+                );
+            });
+
             it('specifying a zero address beneficiary', async () => {
                 await expectRevert(
                     givenAVestingSchedule({
