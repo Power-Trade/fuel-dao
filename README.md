@@ -1,5 +1,33 @@
 # Sync DAO Solidity Smart Contracts
 
+## Seting up your environent
+
+This is a node.js project so you need to ensure you install all of your dependencies with:
+
+```
+npm i
+```
+
+## Running Tests
+
+With all your dependencies installed, that's as simple as:
+
+```
+npx buidler test
+```
+
+## Deployment
+
+Deployment and transactional scripts can be found in the `scripts/` directory. The format for running a script is
+
+```
+npx buidler run --network <your_network> scripts/<chosen_script>
+```
+
+It's important to have a `.env` file set up which includes important things like setting the private key for the deployment account.
+
+Please see `.env.example` for some of the properties you set up. Different scripts will use different properties.
+
 ## Mainnet Contracts
 * Timelock (DAO treasury & agent) [0x06215b62731E53f43b973FA9951Cf1C042eaAEA3](https://etherscan.io/address/0x06215b62731E53f43b973FA9951Cf1C042eaAEA3)
 * SyncToken [0x6DCEd71d2488eEf71703218A68c6052665B57709](https://etherscan.io/address/0x6DCEd71d2488eEf71703218A68c6052665B57709)

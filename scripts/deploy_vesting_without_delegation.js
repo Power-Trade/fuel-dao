@@ -1,8 +1,3 @@
-const csv = require('csv-parser')
-const fs = require('fs')
-
-const SyncToken = require('../artifacts/SyncToken.json');
-
 async function main() {
     const [deployer] = await ethers.getSigners();
     const deployerAddress = await deployer.getAddress();
@@ -11,10 +6,10 @@ async function main() {
         deployerAddress
     );
 
-    const SyncTokenFactory = await ethers.getContractFactory("SyncToken");
-    const syncToken = await SyncTokenFactory.deploy(5000, deployerAddress, deployerAddress);
-    await syncToken.deployed();
-    const syncTokenAddress = process.env.SYNC_TOKEN_ADDRESS || syncToken.address;
+    // const SyncTokenFactory = await ethers.getContractFactory("SyncToken");
+    // const syncToken = await SyncTokenFactory.deploy(5000, deployerAddress, deployerAddress);
+    // await syncToken.deployed();
+    const syncTokenAddress = process.env.SYNC_TOKEN_ADDRESS;
     console.log('Sync Token Address', syncTokenAddress);
 
     const start = process.env.VESTING_START || 0;
@@ -36,39 +31,6 @@ async function main() {
 
     await vestingContract.deployed();
     console.log('Vesting contract without delegation deployed at:', vestingContract.address);
-
-    // approve
-    const token = new ethers.Contract(
-      syncTokenAddress,
-      SyncToken.abi, //abi
-      deployer //provider
-    );
-
-    console.log('token', token.address);
-
-    await token.approve(vestingContract.address, 500);
-
-    console.log('Lets set up some vesting schedules based on vesting_schedules.csv');
-
-    const beneficiaries = [];
-    const vestedAmounts = [];
-    await new Promise((resolve) => {
-      fs.createReadStream('./scripts/vesting_schedules.csv')
-      .pipe(csv())
-      .on('data', data => {
-        beneficiaries.push(data.beneficiary);
-        vestedAmounts.push(parseInt(data.vested));
-      })
-      .on('end', () => resolve());
-    });
-
-    console.log('Beneficiaries', beneficiaries);
-    console.log('vestedAmounts', vestedAmounts);
-
-    await vestingContract.createVestingSchedules(
-      beneficiaries,
-      vestedAmounts
-    );
 }
 
 main()

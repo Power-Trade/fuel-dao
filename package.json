@@ -16,13 +16,6 @@
     "url": "https://github.com/syncdao/core/issues"
   },
   "homepage": "https://github.com/syncdao/core#readme",
-  "dependencies": {
-    "@openzeppelin/contracts": "^2.4.0",
-    "@optionality.io/clone-factory": "^0.2.1",
-    "csv-parser": "^2.3.3",
-    "dotenv": "^8.2.0",
-    "moment": "^2.27.0"
-  },
   "devDependencies": {
     "@nomiclabs/buidler": "^1.4.3",
     "@nomiclabs/buidler-ethers": "^2.0.0",
@@ -37,6 +30,14 @@
     "ethers": "^5.0.8",
     "mocha": "^8.1.3",
     "solidity-coverage": "^0.7.10",
-    "web3": "^1.2.11"
+    "web3": "^1.2.11",
+    "@openzeppelin/contracts": "^2.4.0",
+    "@optionality.io/clone-factory": "^0.2.1",
+    "csv-parser": "^2.3.3",
+    "dotenv": "^8.2.0",
+    "moment": "^2.27.0"
+  },
+  "dependencies": {
+    "lodash": "^4.17.20"
   }
 }
