@@ -36,9 +36,15 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
         cliffDuration = _cliffDuration;
     }
 
-    function createVestingSchedules(address[] calldata _beneficiaries, uint256[] calldata _amounts) external returns (bool) {
+    function createVestingSchedules(
+        address[] calldata _beneficiaries,
+        uint256[] calldata _amounts
+    ) external returns (bool) {
         require(_beneficiaries.length > 0, "VestingContract::createVestingSchedules: Empty Data");
-        require(_beneficiaries.length == _amounts.length, "VestingContract::createVestingSchedules: Array lengths do not match");
+        require(
+            _beneficiaries.length == _amounts.length,
+            "VestingContract::createVestingSchedules: Array lengths do not match"
+        );
 
         bool result = true;
 
@@ -99,7 +105,10 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
         vestedAmount[_beneficiary] = _amount;
 
         // Vest the tokens into the deposit account and delegate to the beneficiary
-        require(token.transferFrom(msg.sender, address(this), _amount), "VestingContract::createVestingSchedule: Unable to escrow tokens");
+        require(
+            token.transferFrom(msg.sender, address(this), _amount),
+            "VestingContract::createVestingSchedule: Unable to escrow tokens"
+        );
 
         emit ScheduleCreated(_beneficiary);
 
@@ -119,7 +128,10 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
         totalDrawn[_beneficiary] = totalDrawn[_beneficiary].add(amount);
 
         // Safety measure - this should never trigger
-        require(totalDrawn[_beneficiary] <= vestedAmount[_beneficiary], "VestingContract::_drawDown: Safety Mechanism - Drawn exceeded Amount Vested");
+        require(
+            totalDrawn[_beneficiary] <= vestedAmount[_beneficiary],
+            "VestingContract::_drawDown: Safety Mechanism - Drawn exceeded Amount Vested"
+        );
 
         // Issue tokens to beneficiary
         require(token.transfer(_beneficiary, amount), "VestingContract::_drawDown: Unable to transfer tokens");
