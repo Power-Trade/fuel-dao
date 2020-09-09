@@ -1,6 +1,8 @@
 const csv = require('csv-parser')
 const fs = require('fs')
 
+const SyncToken = require('../artifacts/SyncToken.json');
+
 async function main() {
     const [deployer] = await ethers.getSigners();
     const deployerAddress = await deployer.getAddress();
@@ -9,7 +11,10 @@ async function main() {
         deployerAddress
     );
 
-    const syncTokenAddress = process.env.SYNC_TOKEN_ADDRESS || '0xc783df8a850f42e7F7e57013759C285caa701eB6';
+    const SyncTokenFactory = await ethers.getContractFactory("SyncToken");
+    const syncToken = await SyncTokenFactory.deploy(5000, deployerAddress, deployerAddress);
+    await syncToken.deployed();
+    const syncTokenAddress = process.env.SYNC_TOKEN_ADDRESS || syncToken.address;
     console.log('Sync Token Address', syncTokenAddress);
 
     const start = process.env.VESTING_START || 0;
@@ -35,9 +40,13 @@ async function main() {
     // approve
     const token = new ethers.Contract(
       syncTokenAddress,
-      [], //abi
-      null //provider
+      SyncToken.abi, //abi
+      deployer //provider
     );
+
+    console.log('token', token.address);
+
+    await token.approve(vestingContract.address, 500);
 
     console.log('Lets set up some vesting schedules based on vesting_schedules.csv');
 
