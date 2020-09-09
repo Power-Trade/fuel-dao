@@ -64,7 +64,10 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         require(_amount > 0, "VestingContract::createVestingSchedule: Amount cannot be empty");
 
         // Ensure one per address
-        require(vestingSchedule[_beneficiary].amount == 0, "VestingContract::createVestingSchedule: Schedule already in flight");
+        require(
+            vestingSchedule[_beneficiary].amount == 0, 
+            "VestingContract::createVestingSchedule: Schedule already in flight"
+        );
 
         // Set up the vesting deposit account for the _beneficiary
         address depositAccountAddress = createClone(baseVestingDepositAccount);
@@ -75,10 +78,13 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         vestingSchedule[_beneficiary] = Schedule({
             amount : _amount,
             depositAccount : depositAccount
-            });
+        });
 
         // Vest the tokens into the deposit account and delegate to the beneficiary
-        require(token.transferFrom(msg.sender, address(depositAccount), _amount), "VestingContract::createVestingSchedule: Unable to transfer tokens to VDA");
+        require(
+            token.transferFrom(msg.sender, address(depositAccount), _amount),
+            "VestingContract::createVestingSchedule: Unable to transfer tokens to VDA"
+        );
 
         // ensure beneficiary has voting rights via delegate
         _updateVotingDelegation(_beneficiary);
@@ -107,7 +113,7 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         vestingSchedule[_newBeneficiary] = Schedule({
             amount : schedule.amount.sub(totalDrawn[_currentBeneficiary]),
             depositAccount : schedule.depositAccount
-            });
+        });
 
         vestingSchedule[_newBeneficiary].depositAccount.switchBeneficiary(_newBeneficiary);
 
@@ -126,7 +132,14 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
 
     function vestingScheduleForBeneficiary(address _beneficiary)
     external view
-    returns (uint256 _amount, uint256 _totalDrawn, uint256 _lastDrawnAt, uint256 _drawDownRate, uint256 _remainingBalance, address _depositAccountAddress) {
+    returns (
+        uint256 _amount,
+        uint256 _totalDrawn,
+        uint256 _lastDrawnAt,
+        uint256 _drawDownRate,
+        uint256 _remainingBalance,
+        address _depositAccountAddress
+    ) {
         Schedule memory schedule = vestingSchedule[_beneficiary];
         return (
         schedule.amount,
@@ -164,10 +177,16 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         totalDrawn[_beneficiary] = totalDrawn[_beneficiary].add(amount);
 
         // Safety measure - this should never trigger
-        require(totalDrawn[_beneficiary] <= schedule.amount, "VestingContract::_drawDown: Safety Mechanism - Drawn exceeded Amount Vested");
+        require(
+            totalDrawn[_beneficiary] <= schedule.amount, 
+            "VestingContract::_drawDown: Safety Mechanism - Drawn exceeded Amount Vested"
+        );
 
         // Issue tokens to beneficiary
-        require(schedule.depositAccount.transferToBeneficiary(amount), "VestingContract::_drawDown: Unable to transfer tokens");
+        require(
+            schedule.depositAccount.transferToBeneficiary(amount), 
+            "VestingContract::_drawDown: Unable to transfer tokens"
+        );
 
         emit DrawDown(_beneficiary, amount, _getNow());
 
@@ -177,7 +196,12 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
     // note only the beneficiary associated with a vesting schedule can claim voting rights
     function _updateVotingDelegation(address _delegatee) internal {
         Schedule memory schedule = vestingSchedule[_delegatee];
-        require(schedule.amount > 0, "VestingContract::_updateVotingDelegation: There is no schedule currently in flight");
+        
+        require(
+            schedule.amount > 0,
+            "VestingContract::_updateVotingDelegation: There is no schedule currently in flight"
+        );
+
         schedule.depositAccount.updateVotingDelegation(_delegatee);
     }
 

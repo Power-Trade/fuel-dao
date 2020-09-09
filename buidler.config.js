@@ -2,6 +2,7 @@ require('dotenv').config();
 usePlugin("@nomiclabs/buidler-truffle5");
 usePlugin("buidler-gas-reporter");
 usePlugin("solidity-coverage");
+usePlugin("@nomiclabs/buidler-solhint");
 
 const INFURA_PROJECT_ID = process.env.INFURA_PROJECT_ID;
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
