@@ -44,10 +44,10 @@ contract('VestingDepositAccount', function ([_, admin, token, controller, benefi
             );
         });
 
-        it('when updateVotingDelegation not called by controller', async () => {
+        it('when updateDelegation not called by controller', async () => {
             await expectRevert(
-                this.vestingDepositAccount.updateVotingDelegation(anotherBeneficiary, {from: beneficiary}),
-                'VestingDepositAccount::updateVotingDelegation: Only controller'
+                this.vestingDepositAccount.updateDelegation(anotherBeneficiary, {from: beneficiary}),
+                'VestingDepositAccount::updateDelegation: Only controller'
             );
         });
     });

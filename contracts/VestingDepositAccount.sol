@@ -25,8 +25,8 @@ contract VestingDepositAccount {
         beneficiary = _newBeneficiary;
     }
 
-    function updateVotingDelegation(address _delegatee) external {
-        require(msg.sender == controller, "VestingDepositAccount::updateVotingDelegation: Only controller");
+    function updateDelegation(address _delegatee) external {
+        require(msg.sender == controller, "VestingDepositAccount::updateDelegation: Only controller");
         token.delegate(_delegatee);
     }
 }
