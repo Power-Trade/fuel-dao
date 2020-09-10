@@ -8,12 +8,12 @@ pragma experimental ABIEncoderV2;
 // 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 // THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-contract SyncToken {
+contract FuelToken {
     /// @notice EIP-20 token name for this token
-    string public constant name = "Sync DAO Governance Token";
+    string public constant name = "PowerTrade Fuel Token";
 
     /// @notice EIP-20 token symbol for this token
-    string public constant symbol = "SDG";
+    string public constant symbol = "PTF";
 
     /// @notice EIP-20 token decimals for this token
     uint8 public constant decimals = 18;
@@ -70,17 +70,17 @@ contract SyncToken {
     event NewMinter(address minter);
 
     modifier onlyMinter {
-        require(msg.sender == minter, "SyncToken:onlyMinter: should only be called by minter");
+        require(msg.sender == minter, "FuelToken:onlyMinter: should only be called by minter");
         _;
     }
 
     /**
-     * @notice Construct a new Sync token
+     * @notice Construct a new Fuel token
      * @param initialSupply The initial supply minted at deployment
      * @param account The initial account to grant all the tokens
      */
     constructor(uint initialSupply, address account, address _minter) public {
-        totalSupply = safe96(initialSupply, "SyncToken::constructor:amount exceeds 96 bits");
+        totalSupply = safe96(initialSupply, "FuelToken::constructor:amount exceeds 96 bits");
         balances[account] = uint96(initialSupply);
         minter = _minter;
         emit Transfer(address(0), account, initialSupply);
@@ -109,7 +109,7 @@ contract SyncToken {
         if (rawAmount == uint(-1)) {
             amount = uint96(-1);
         } else {
-            amount = safe96(rawAmount, "SyncToken::approve: amount exceeds 96 bits");
+            amount = safe96(rawAmount, "FuelToken::approve: amount exceeds 96 bits");
         }
 
         allowances[msg.sender][spender] = amount;
@@ -134,7 +134,7 @@ contract SyncToken {
      * @notice only callable by minter
      */
     function mint(address dst, uint rawAmount) external onlyMinter {
-        uint96 amount = safe96(rawAmount, "SyncToken::mint: amount exceeds 96 bits");
+        uint96 amount = safe96(rawAmount, "FuelToken::mint: amount exceeds 96 bits");
         _mintTokens(dst, amount);
     }
 
@@ -143,7 +143,7 @@ contract SyncToken {
      * @param rawAmount The number of tokens to burn
      */
     function burn(uint rawAmount) external {
-        uint96 amount = safe96(rawAmount, "SyncToken::burn: amount exceeds 96 bits");
+        uint96 amount = safe96(rawAmount, "FuelToken::burn: amount exceeds 96 bits");
         _burnTokens(msg.sender, amount);
     }
 
@@ -164,7 +164,7 @@ contract SyncToken {
      * @return Whether or not the transfer succeeded
      */
     function transfer(address dst, uint rawAmount) external returns (bool) {
-        uint96 amount = safe96(rawAmount, "SyncToken::transfer: amount exceeds 96 bits");
+        uint96 amount = safe96(rawAmount, "FuelToken::transfer: amount exceeds 96 bits");
         _transferTokens(msg.sender, dst, amount);
         return true;
     }
@@ -179,10 +179,10 @@ contract SyncToken {
     function transferFrom(address src, address dst, uint rawAmount) external returns (bool) {
         address spender = msg.sender;
         uint96 spenderAllowance = allowances[src][spender];
-        uint96 amount = safe96(rawAmount, "SyncToken::approve: amount exceeds 96 bits");
+        uint96 amount = safe96(rawAmount, "FuelToken::approve: amount exceeds 96 bits");
 
         if (spender != src && spenderAllowance != uint96(-1)) {
-            uint96 newAllowance = sub96(spenderAllowance, amount, "SyncToken::transferFrom: transfer amount exceeds spender allowance");
+            uint96 newAllowance = sub96(spenderAllowance, amount, "FuelToken::transferFrom: transfer amount exceeds spender allowance");
             allowances[src][spender] = newAllowance;
 
             emit Approval(src, spender, newAllowance);
@@ -214,9 +214,9 @@ contract SyncToken {
         bytes32 structHash = keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry));
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
         address signatory = ecrecover(digest, v, r, s);
-        require(signatory != address(0), "SyncToken::delegateBySig: invalid signature");
-        require(nonce == nonces[signatory]++, "SyncToken::delegateBySig: invalid nonce");
-        require(now <= expiry, "SyncToken::delegateBySig: signature expired");
+        require(signatory != address(0), "FuelToken::delegateBySig: invalid signature");
+        require(nonce == nonces[signatory]++, "FuelToken::delegateBySig: invalid nonce");
+        require(now <= expiry, "FuelToken::delegateBySig: signature expired");
         return _delegate(signatory, delegatee);
     }
 
@@ -238,7 +238,7 @@ contract SyncToken {
      * @return The number of votes the account had as of the given block
      */
     function getPriorVotes(address account, uint blockNumber) public view returns (uint96) {
-        require(blockNumber < block.number, "SyncToken::getPriorVotes: not yet determined");
+        require(blockNumber < block.number, "FuelToken::getPriorVotes: not yet determined");
 
         uint32 nCheckpoints = numCheckpoints[account];
         if (nCheckpoints == 0) {
@@ -282,30 +282,30 @@ contract SyncToken {
     }
 
     function _transferTokens(address src, address dst, uint96 amount) internal {
-        require(src != address(0), "SyncToken::_transferTokens: cannot transfer from the zero address");
-        require(dst != address(0), "SyncToken::_transferTokens: cannot transfer to the zero address");
+        require(src != address(0), "FuelToken::_transferTokens: cannot transfer from the zero address");
+        require(dst != address(0), "FuelToken::_transferTokens: cannot transfer to the zero address");
 
-        balances[src] = sub96(balances[src], amount, "SyncToken::_transferTokens: transfer amount exceeds balance");
-        balances[dst] = add96(balances[dst], amount, "SyncToken::_transferTokens: transfer amount overflows");
+        balances[src] = sub96(balances[src], amount, "FuelToken::_transferTokens: transfer amount exceeds balance");
+        balances[dst] = add96(balances[dst], amount, "FuelToken::_transferTokens: transfer amount overflows");
         emit Transfer(src, dst, amount);
 
         _moveDelegates(delegates[src], delegates[dst], amount);
     }
 
     function _mintTokens(address dst, uint96 amount) internal {
-        require(dst != address(0), "SyncToken::_mintTokens: cannot transfer to the zero address");
-        uint96 supply = safe96(totalSupply, "SyncToken::_mintTokens: totalSupply exceeds 96 bits");
-        totalSupply = add96(supply, amount, "SyncToken::_mintTokens: totalSupply exceeds 96 bits");
-        balances[dst] = add96(balances[dst], amount, "SyncToken::_mintTokens: transfer amount overflows");
+        require(dst != address(0), "FuelToken::_mintTokens: cannot transfer to the zero address");
+        uint96 supply = safe96(totalSupply, "FuelToken::_mintTokens: totalSupply exceeds 96 bits");
+        totalSupply = add96(supply, amount, "FuelToken::_mintTokens: totalSupply exceeds 96 bits");
+        balances[dst] = add96(balances[dst], amount, "FuelToken::_mintTokens: transfer amount overflows");
         emit Transfer(address(0), dst, amount);
 
         _moveDelegates(address(0), delegates[dst], amount);
     }
 
     function _burnTokens(address src, uint96 amount) internal {
-        uint96 supply = safe96(totalSupply, "SyncToken::_burnTokens: totalSupply exceeds 96 bits");
-        totalSupply = sub96(supply, amount, "SyncToken::_burnTokens:totalSupply underflow");
-        balances[src] = sub96(balances[src], amount, "SyncToken::_burnTokens: amount overflows");
+        uint96 supply = safe96(totalSupply, "FuelToken::_burnTokens: totalSupply exceeds 96 bits");
+        totalSupply = sub96(supply, amount, "FuelToken::_burnTokens:totalSupply underflow");
+        balances[src] = sub96(balances[src], amount, "FuelToken::_burnTokens: amount overflows");
         emit Transfer(src, address(0), amount);
 
         _moveDelegates(delegates[src], address(0), amount);
@@ -316,21 +316,21 @@ contract SyncToken {
             if (srcRep != address(0)) {
                 uint32 srcRepNum = numCheckpoints[srcRep];
                 uint96 srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : 0;
-                uint96 srcRepNew = sub96(srcRepOld, amount, "SyncToken::_moveVotes: vote amount underflows");
+                uint96 srcRepNew = sub96(srcRepOld, amount, "FuelToken::_moveVotes: vote amount underflows");
                 _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew);
             }
 
             if (dstRep != address(0)) {
                 uint32 dstRepNum = numCheckpoints[dstRep];
                 uint96 dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : 0;
-                uint96 dstRepNew = add96(dstRepOld, amount, "SyncToken::_moveVotes: vote amount overflows");
+                uint96 dstRepNew = add96(dstRepOld, amount, "FuelToken::_moveVotes: vote amount overflows");
                 _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew);
             }
         }
     }
 
     function _writeCheckpoint(address delegatee, uint32 nCheckpoints, uint96 oldVotes, uint96 newVotes) internal {
-      uint32 blockNumber = safe32(block.number, "SyncToken::_writeCheckpoint: block number exceeds 32 bits");
+      uint32 blockNumber = safe32(block.number, "FuelToken::_writeCheckpoint: block number exceeds 32 bits");
 
       if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber) {
           checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
