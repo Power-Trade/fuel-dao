@@ -4,27 +4,49 @@ import "./SafeMath.sol";
 import "./ReentrancyGuard.sol";
 import "./IERC20.sol";
 
+/// @author BlockRocket
 contract VestingContractWithoutDelegation is ReentrancyGuard {
     using SafeMath for uint256;
 
+    /// @notice event emitted when a vesting schedule is created
     event ScheduleCreated(address indexed _beneficiary);
 
+    /// @notice event emitted when a successful drawn down of vesting tokens is made
     event DrawDown(address indexed _beneficiary, uint256 indexed _amount);
 
+    /// @notice start of vesting period as a timestamp
     uint256 public start;
+
+    /// @notice end of vesting period as a timestamp
     uint256 public end;
+
+    /// @notice cliff duration in seconds
     uint256 public cliffDuration;
 
+    /// @notice owner address set on construction
     address public owner;
 
-    // Vested address to its schedule
+    /// @notice amount vested for a beneficiary. Note beneficiary address can not be reused
     mapping(address => uint256) public vestedAmount;
+
+    /// @notice cumulative total of tokens drawn down (and transferred from the deposit account) per beneficiary
     mapping(address => uint256) public totalDrawn;
+
+    /// @notice last drawn down time (seconds) per beneficiary
     mapping(address => uint256) public lastDrawnAt;
 
+    /// @notice ERC20 token we are vesting
     IERC20 public token;
 
-    constructor(IERC20 _token, uint256 _start, uint256 _end, uint256 _cliffDuration) public {
+    /**
+     * @notice Construct a new vesting contract
+     * @param _token ERC20 token
+     * @param _start start timestamp
+     * @param _end end timestamp
+     * @param _cliffDurationInSecs cliff duration in seconds
+     * @dev caller on constructor set as owner; this can not be changed
+     */
+    constructor(IERC20 _token, uint256 _start, uint256 _end, uint256 _cliffDurationInSecs) public {
         require(address(_token) != address(0), "VestingContract::constructor: Invalid token");
         require(_end >= _start, "VestingContract::constructor: Start must be before end");
 
@@ -33,9 +55,16 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
 
         start = _start;
         end = _end;
-        cliffDuration = _cliffDuration;
+        cliffDuration = _cliffDurationInSecs;
     }
 
+    /**
+     * @notice Create new vesting schedules in a batch
+     * @notice A transfer is used to bring tokens into the VestingDepositAccount so pre-approval is required
+     * @param _beneficiaries array of beneficiaries of the vested tokens
+     * @param _amounts array of amount of tokens (in wei)
+     * @dev array index of address should be the same as the array index of the amount
+     */
     function createVestingSchedules(
         address[] calldata _beneficiaries,
         uint256[] calldata _amounts
@@ -58,23 +87,45 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
         return result;
     }
 
+    /**
+     * @notice Create a new vesting schedule
+     * @notice A transfer is used to bring tokens into the VestingDepositAccount so pre-approval is required
+     * @param _beneficiary beneficiary of the vested tokens
+     * @param _amount amount of tokens (in wei)
+     */
     function createVestingSchedule(address _beneficiary, uint256 _amount) external returns (bool) {
         require(msg.sender == owner, "VestingContract::createVestingSchedule: Only Owner");
         return _createVestingSchedule(_beneficiary, _amount);
     }
 
+    /**
+     * @notice Draws down any vested tokens due
+     * @dev Must be called directly by the beneficiary assigned the tokens in the schedule
+     */
     function drawDown() nonReentrant external returns (bool) {
         return _drawDown(msg.sender);
     }
 
-    ///////////////
-    // Accessors //
-    ///////////////
 
+    // Accessors
+
+    /**
+     * @notice Vested token balance for a beneficiary
+     * @dev Must be called directly by the beneficiary assigned the tokens in the schedule
+     * @return _tokenBalance total balance proxied via the ERC20 token
+     */
     function tokenBalance() external view returns (uint256) {
         return token.balanceOf(address(this));
     }
 
+    /**
+     * @notice Vesting schedule and associated data for a beneficiary
+     * @dev Must be called directly by the beneficiary assigned the tokens in the schedule
+     * @return _amount
+     * @return _totalDrawn
+     * @return _lastDrawnAt
+     * @return _remainingBalance
+     */
     function vestingScheduleForBeneficiary(address _beneficiary)
     external view
     returns (uint256 _amount, uint256 _totalDrawn, uint256 _lastDrawnAt, uint256 _remainingBalance) {
@@ -86,17 +137,25 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
         );
     }
 
+    /**
+     * @notice Draw down amount currently available (based on the block timestamp)
+     * @param _beneficiary beneficiary of the vested tokens
+     * @return _amount tokens due from vesting schedule
+     */
     function availableDrawDownAmount(address _beneficiary) external view returns (uint256 _amount) {
         return _availableDrawDownAmount(_beneficiary);
     }
 
+    /**
+     * @notice Balance remaining in vesting schedule
+     * @param _beneficiary beneficiary of the vested tokens
+     * @return _remainingBalance tokens still due (and currently locked) from vesting schedule
+     */
     function remainingBalance(address _beneficiary) external view returns (uint256) {
         return vestedAmount[_beneficiary].sub(totalDrawn[_beneficiary]);
     }
 
-    //////////////
-    // Internal //
-    //////////////
+    // Internal
 
     function _createVestingSchedule(address _beneficiary, uint256 _amount) internal returns (bool) {
         require(_beneficiary != address(0), "VestingContract::createVestingSchedule: Beneficiary cannot be empty");

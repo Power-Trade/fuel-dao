@@ -25,7 +25,7 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
     /// @notice owner address set on construction
     address public owner;
 
-    /// @notice owner beneficiary to schedule mapping. Note beneficiary addresses can not be reused
+    /// @notice beneficiary to schedule mapping. Note beneficiary address can not be reused
     mapping(address => Schedule) public vestingSchedule;
 
     /// @notice cumulative total of tokens drawn down (and transferred from the deposit account) per beneficiary
@@ -116,7 +116,8 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         );
 
         // ensure beneficiary has delegate rights (to allow governance while tokens are vested)
-        _updateDelegation(_beneficiary);
+        Schedule memory schedule = vestingSchedule[_beneficiary];
+        schedule.depositAccount.updateDelegation();
 
         emit ScheduleCreated(_beneficiary, _amount);
 
@@ -143,6 +144,10 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
 
         // retrieve existing schedule
         Schedule memory schedule = vestingSchedule[_currentBeneficiary];
+        require(
+            schedule.amount > 0,
+            "VestingContract::updateScheduleBeneficiary: There is no schedule currently in flight"
+        );
         require(_drawDown(_currentBeneficiary), "VestingContract::_updateScheduleBeneficiary: Unable to drawn down");
 
         // the old schedule is now void
@@ -157,7 +162,7 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         vestingSchedule[_newBeneficiary].depositAccount.switchBeneficiary(_newBeneficiary);
 
         // ensure the new beneficiary has delegate rights
-        _updateDelegation(_newBeneficiary);
+        schedule.depositAccount.updateDelegation();
     }
 
     // Accessors
@@ -204,6 +209,7 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
 
     /**
      * @notice Draw down amount currently available (based on the block timestamp)
+     * @param _beneficiary beneficiary of the vested tokens
      * @return _amount tokens due from vesting schedule
      */
     function availableDrawDownAmount(address _beneficiary) external view returns (uint256 _amount) {
@@ -212,6 +218,7 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
 
     /**
      * @notice Balance remaining in vesting schedule
+     * @param _beneficiary beneficiary of the vested tokens
      * @return _remainingBalance tokens still due (and currently locked) from vesting schedule
      */
     function remainingBalance(address _beneficiary) external view returns (uint256 _remainingBalance) {
@@ -219,9 +226,7 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         return schedule.amount.sub(totalDrawn[_beneficiary]);
     }
 
-    //////////////
-    // Internal //
-    //////////////
+    // Internal
 
     function _drawDown(address _beneficiary) internal returns (bool) {
         Schedule memory schedule = vestingSchedule[_beneficiary];
@@ -253,18 +258,6 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         return true;
     }
 
-    /// @dev Only the beneficiary associated with a vesting schedule can claim voting rights
-    function _updateDelegation(address _delegatee) internal {
-        Schedule memory schedule = vestingSchedule[_delegatee];
-
-        require(
-            schedule.amount > 0,
-            "VestingContract::_updateVotingDelegation: There is no schedule currently in flight"
-        );
-
-        schedule.depositAccount.updateDelegation(_delegatee);
-    }
-
     function _getNow() internal view returns (uint256) {
         return block.timestamp;
     }
@@ -272,7 +265,7 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
     function _availableDrawDownAmount(address _beneficiary) internal view returns (uint256 _amount) {
         Schedule memory schedule = vestingSchedule[_beneficiary];
 
-        // voided contract should not allow any drawdowns
+        // voided contract should not allow any draw downs
         if (voided[_beneficiary]) {
             return 0;
         }
