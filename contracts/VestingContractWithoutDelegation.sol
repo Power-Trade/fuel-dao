@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./SafeMath.sol";
+import "./ReentrancyGuard.sol";
 import "./IERC20.sol";
 
 contract VestingContractWithoutDelegation is ReentrancyGuard {
@@ -97,6 +97,7 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
     //////////////
     // Internal //
     //////////////
+
     function _createVestingSchedule(address _beneficiary, uint256 _amount) internal returns (bool) {
         require(_beneficiary != address(0), "VestingContract::createVestingSchedule: Beneficiary cannot be empty");
         require(_amount > 0, "VestingContract::createVestingSchedule: Amount cannot be empty");
@@ -148,34 +149,19 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
     }
 
     function _availableDrawDownAmount(address _beneficiary) internal view returns (uint256 _amount) {
-        //////////////////////////
-        // Schedule not started //
-        //////////////////////////
 
-        if (_getNow() <= start) {
-            return 0;
-        }
-
-        ///////////////////////
-        // Cliff Period      //
-        ///////////////////////
-
-        if (_getNow() < start.add(cliffDuration)) {
+        // Cliff Period
+        if (_getNow() <= start.add(cliffDuration)) {
             // the cliff period has not ended, no tokens to draw down
             return 0;
         }
 
-        ///////////////////////
-        // Schedule complete //
-        ///////////////////////
-
+        // Schedule complete
         if (_getNow() > end) {
             return vestedAmount[_beneficiary].sub(totalDrawn[_beneficiary]);
         }
 
-        ////////////////////////
-        // Schedule is active //
-        ////////////////////////
+        // Schedule is active
 
         // Work out when the last invocation was
         uint256 timeLastDrawnOrStart = lastDrawnAt[_beneficiary] == 0 ? start : lastDrawnAt[_beneficiary];

@@ -1,7 +1,7 @@
 pragma solidity ^0.5.16;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./SafeMath.sol";
+import "./ReentrancyGuard.sol";
 import "./CloneFactory.sol";
 import "./IERC20.sol";
 import "./VestingDepositAccount.sol";
@@ -164,6 +164,7 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
     //////////////
     // Internal //
     //////////////
+
     function _drawDown(address _beneficiary) internal returns (bool) {
         Schedule memory schedule = vestingSchedule[_beneficiary];
         require(schedule.amount > 0, "VestingContract::_drawDown: There is no schedule currently in flight");
@@ -219,7 +220,7 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         }
 
         // cliff
-        if (_getNow() < start.add(cliffDuration)) {
+        if (_getNow() <= start.add(cliffDuration)) {
             // the cliff period has not ended, no tokens to draw down
             return 0;
         }
@@ -229,9 +230,7 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
             return schedule.amount.sub(totalDrawn[_beneficiary]);
         }
 
-        ////////////////////////
-        // Schedule is active //
-        ////////////////////////
+        // Schedule is active
 
         // Work out when the last invocation was
         uint256 timeLastDrawnOrStart = lastDrawnAt[_beneficiary] == 0 ? start : lastDrawnAt[_beneficiary];
