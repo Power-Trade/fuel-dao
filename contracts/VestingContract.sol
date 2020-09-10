@@ -115,10 +115,6 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
             "VestingContract::createVestingSchedule: Unable to transfer tokens to VDA"
         );
 
-        // ensure beneficiary has delegate rights (to allow governance while tokens are vested)
-        Schedule memory schedule = vestingSchedule[_beneficiary];
-        schedule.depositAccount.updateDelegation();
-
         emit ScheduleCreated(_beneficiary, _amount);
 
         return true;
@@ -160,9 +156,6 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
             });
 
         vestingSchedule[_newBeneficiary].depositAccount.switchBeneficiary(_newBeneficiary);
-
-        // ensure the new beneficiary has delegate rights
-        schedule.depositAccount.updateDelegation();
     }
 
     // Accessors
