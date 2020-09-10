@@ -3,7 +3,7 @@ pragma solidity ^0.5.16;
 import "openzeppelin-solidity-2.3.0/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity-2.3.0/contracts/token/ERC20/ERC20.sol";
 import "./Staking.sol";
-import "./Token.sol";
+import "./SyncToken.sol";
 
 contract StakingToken is ERC20 {
 

@@ -1,5 +1,8 @@
-require('dotenv').config()
-usePlugin("@nomiclabs/buidler-waffle");
+require('dotenv').config();
+usePlugin("@nomiclabs/buidler-truffle5");
+usePlugin("buidler-gas-reporter");
+usePlugin("solidity-coverage");
+usePlugin("@nomiclabs/buidler-solhint");
 
 const INFURA_PROJECT_ID = process.env.INFURA_PROJECT_ID;
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
@@ -11,6 +14,10 @@ module.exports = {
       enabled: true,
       runs: 200
     }
+  },
+  gasReporter: {
+    currency: 'USD',
+    enabled: false
   },
   networks: {
     mainnet: {
@@ -28,6 +35,9 @@ module.exports = {
     kovan: {
       url: `https://kovan.infura.io/v3/${INFURA_PROJECT_ID}`,
       accounts: [`0x${PRIVATE_KEY}`]
+    },
+    coverage: {
+      url: 'http://localhost:8555',
     }
   }
 };
