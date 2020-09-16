@@ -10,7 +10,7 @@ pragma experimental ABIEncoderV2;
 
 contract Governor {
     /// @notice The name of this contract
-    string public constant name = "Sync Governor";
+    string public constant name = "PowerTrade Fuel Token Governor";
 
     /// @notice The number of votes in support of a proposal required in order for a quorum to be reached and for a vote to succeed
     uint public quorumVotes;
@@ -30,8 +30,8 @@ contract Governor {
     /// @notice The address of the Timelock contract
     TimelockInterface public timelock;
 
-    /// @notice The address of the SyncToken contract
-    SyncTokenInterface public sync;
+    /// @notice The address of the FuelToken contract
+    FuelTokenInterface public fuel;
 
     /// @notice The address of the Governor Guardian
     address public guardian;
@@ -134,9 +134,9 @@ contract Governor {
     /// @notice An event emitted when a proposal has been executed in the Timelock
     event ProposalExecuted(uint id);
 
-    constructor(address timelock_, address sync_, address guardian_, uint quorumVotes_, uint proposalThreshold_, uint votingPeriodBlocks_, uint votingDelayBlocks_) public {
+    constructor(address timelock_, address fuel_, address guardian_, uint quorumVotes_, uint proposalThreshold_, uint votingPeriodBlocks_, uint votingDelayBlocks_) public {
         timelock = TimelockInterface(timelock_);
-        sync = SyncTokenInterface(sync_);
+        fuel = FuelTokenInterface(fuel_);
         guardian = guardian_;
         quorumVotes = quorumVotes_;
         proposalThreshold = proposalThreshold_;
@@ -145,7 +145,7 @@ contract Governor {
     }
 
     function propose(address[] memory targets, uint[] memory values, string[] memory signatures, bytes[] memory calldatas, string memory description) public returns (uint) {
-        require(sync.getPriorVotes(msg.sender, sub256(block.number, 1)) > proposalThreshold, "Governor::propose: proposer votes below proposal threshold");
+        require(fuel.getPriorVotes(msg.sender, sub256(block.number, 1)) > proposalThreshold, "Governor::propose: proposer votes below proposal threshold");
         require(targets.length == values.length && targets.length == signatures.length && targets.length == calldatas.length, "Governor::propose: proposal function information arity mismatch");
         require(targets.length != 0, "Governor::propose: must provide actions");
         require(targets.length <= proposalMaxOperations, "Governor::propose: too many actions");
@@ -215,7 +215,7 @@ contract Governor {
         require(state != ProposalState.Executed, "Governor::cancel: cannot cancel executed proposal");
 
         Proposal storage proposal = proposals[proposalId];
-        require(msg.sender == guardian || sync.getPriorVotes(proposal.proposer, sub256(block.number, 1)) < proposalThreshold, "Governor::cancel: proposer above threshold");
+        require(msg.sender == guardian || fuel.getPriorVotes(proposal.proposer, sub256(block.number, 1)) < proposalThreshold, "Governor::cancel: proposer above threshold");
 
         proposal.canceled = true;
         for (uint i = 0; i < proposal.targets.length; i++) {
@@ -274,7 +274,7 @@ contract Governor {
         Proposal storage proposal = proposals[proposalId];
         Receipt storage receipt = proposal.receipts[voter];
         require(receipt.hasVoted == false, "Governor::_castVote: voter already voted");
-        uint96 votes = sync.getPriorVotes(voter, proposal.startBlock);
+        uint96 votes = fuel.getPriorVotes(voter, proposal.startBlock);
 
         if (support) {
             proposal.forVotes = add256(proposal.forVotes, votes);
@@ -333,6 +333,6 @@ interface TimelockInterface {
     function executeTransaction(address target, uint value, string calldata signature, bytes calldata data, uint eta) external payable returns (bytes memory);
 }
 
-interface SyncTokenInterface {
+interface FuelTokenInterface {
     function getPriorVotes(address account, uint blockNumber) external view returns (uint96);
 }

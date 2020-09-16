@@ -4,3 +4,7 @@ node_modules
 #Buidler files
 cache
 artifacts
+
+# ide
+*.iml
+.idea
