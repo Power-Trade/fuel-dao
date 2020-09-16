@@ -7,7 +7,7 @@ require('chai').should();
 
 const VestingDepositAccount = artifacts.require('VestingDepositAccount');
 const VestingContract = artifacts.require('VestingContractWithFixedTime');
-const SyncToken = artifacts.require('SyncToken');
+const FuelToken = artifacts.require('FuelToken');
 
 contract('VestingContract', function ([_, admin, random, beneficiary1, beneficiary2, beneficiary3]) {
     const DECIMALS = 18;
@@ -31,7 +31,7 @@ contract('VestingContract', function ([_, admin, random, beneficiary1, beneficia
     const TEN_DAYS_IN_SECONDS = (_10days * parseInt(PERIOD_ONE_DAY_IN_SECONDS.toString()));
 
     beforeEach(async () => {
-        this.token = await SyncToken.new(INITIAL_SUPPLY, admin, admin, {from: admin});
+        this.token = await FuelToken.new(INITIAL_SUPPLY, admin, admin, {from: admin});
 
         // Assert the token is constructed correctly
         const creatorBalance = await this.token.balanceOf(admin);

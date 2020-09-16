@@ -5,7 +5,7 @@ const {latest} = time;
 
 require('chai').should();
 
-const SyncToken = artifacts.require('SyncToken');
+const FuelToken = artifacts.require('FuelToken');
 const VestingDepositAccount = artifacts.require('VestingDepositAccount');
 
 contract('VestingDepositAccount', function ([_, admin, controller, beneficiary, anotherBeneficiary]) {
@@ -15,7 +15,7 @@ contract('VestingDepositAccount', function ([_, admin, controller, beneficiary, 
     const INITIAL_SUPPLY = TEN_BILLION.mul(new BN(10).pow(new BN(DECIMALS)));
 
     beforeEach(async () => {
-        this.token = await SyncToken.new(INITIAL_SUPPLY, admin, admin, {from: admin});
+        this.token = await FuelToken.new(INITIAL_SUPPLY, admin, admin, {from: admin});
         this.vestingDepositAccount = await VestingDepositAccount.new({from: admin});
         await this.vestingDepositAccount.init(this.token.address, controller, beneficiary);
     });

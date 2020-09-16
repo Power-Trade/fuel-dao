@@ -6,7 +6,7 @@ const {latest} = time;
 require('chai').should();
 
 const VestingContract = artifacts.require('VestingContractWithoutDelegationFixedTime');
-const SyncToken = artifacts.require('SyncToken');
+const FuelToken = artifacts.require('FuelToken');
 
 contract('VestingContractWithoutDelegation', function ([_, admin, random, beneficiary1, beneficiary2, beneficiary3]) {
     const DECIMALS = 18;
@@ -55,7 +55,7 @@ contract('VestingContractWithoutDelegation', function ([_, admin, random, benefi
     };
 
     beforeEach(async () => {
-        this.token = await SyncToken.new(INITIAL_SUPPLY, admin, admin, fromAdmin);
+        this.token = await FuelToken.new(INITIAL_SUPPLY, admin, admin, fromAdmin);
 
         // Assert the token is constructed correctly
         const creatorBalance = await this.token.balanceOf(admin);

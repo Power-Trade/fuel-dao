@@ -1,6 +1,6 @@
 pragma solidity ^0.5.16;
 
-import "./SyncToken.sol";
+import "./FuelToken.sol";
 
 /// @author BlockRocket
 contract VestingDepositAccount {
@@ -12,7 +12,7 @@ contract VestingDepositAccount {
     address public beneficiary;
 
     /// @notice ERC20 token that is vested (extended with a delegate function)
-    SyncToken public token;
+    FuelToken public token;
 
     /**
      * @notice Using a minimal proxy contract pattern initialises the contract and sets delegation
@@ -21,7 +21,7 @@ contract VestingDepositAccount {
      */
     function init(address _tokenAddress, address _controller, address _beneficiary) external {
         require(controller == address(0), "VestingDepositAccount::init: Contract already initialized");
-        token = SyncToken(_tokenAddress);
+        token = FuelToken(_tokenAddress);
         controller = _controller;
         beneficiary = _beneficiary;
 
