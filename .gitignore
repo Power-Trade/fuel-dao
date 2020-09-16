@@ -1,10 +1,14 @@
 node_modules
 .env
 
-#Buidler files
+# Buidler files
 cache
 artifacts
 
-# ide
+# output
+coverage
+
+# ide junk
 *.iml
 .idea
+
