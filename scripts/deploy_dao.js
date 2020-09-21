@@ -14,12 +14,12 @@ async function main() {
     "Deploying contracts with the account:",
     await deployer.getAddress()
   );
-  
+
   const Timelock = await ethers.getContractFactory("Timelock");
   const timelock = await Timelock.deploy(await deployer.getAddress(), TIMELOCK_DELAY, TIMELOCK_GRACE_PERIOD);
   await timelock.deployed();
   console.log('Timelock deployed at', timelock.address)
-  const SyncToken = await ethers.getContractFactory("SyncToken");
+  const SyncToken = await ethers.getContractFactory("FuelToken");
   const syncToken = await SyncToken.deploy(TOKEN_SUPPLY, GOVERNOR_GUARDIAN, timelock.address);
   await syncToken.deployed();
   console.log('SyncToken deployed at', syncToken.address)
