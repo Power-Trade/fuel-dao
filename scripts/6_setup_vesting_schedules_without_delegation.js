@@ -1,9 +1,9 @@
 const _ = require('lodash');
-const csv = require('csv-parser')
-const fs = require('fs')
+const csv = require('csv-parser');
+const fs = require('fs');
 const {BigNumber, utils} = require('ethers');
 
-const SyncToken = require('../artifacts/FuelToken.json');
+const FuelToken = require('../artifacts/FuelToken.json');
 const VestingContractWithoutDelegation = require('../artifacts/VestingContractWithoutDelegation.json');
 
 async function main() {
@@ -14,10 +14,10 @@ async function main() {
         deployerAddress
     );
 
-    const syncTokenAddress = process.env.SYNC_TOKEN_ADDRESS;
+    const fuelTokenAddress = process.env.FUEL_TOKEN_ADDRESS;
     const token = new ethers.Contract(
-        syncTokenAddress,
-        SyncToken.abi,
+        fuelTokenAddress,
+        FuelToken.abi,
         deployer //provider
     );
 
@@ -39,7 +39,7 @@ async function main() {
             .pipe(csv())
             .on('data', data => {
                 beneficiaries.push(data.beneficiary);
-                vestedAmounts.push(utils.parseEther(data.vested)); // convert from a to 18 DP amount to a WEI equiv
+                vestedAmounts.push(utils.parseEther(data.vested)); // convert to an 18 DP amount ( WEI equiv )
             })
             .on('end', () => resolve());
     });

@@ -1,6 +1,6 @@
 const {utils} = require('ethers');
 
-const SyncToken = require('../artifacts/FuelToken.json');
+const FuelToken = require('../artifacts/FuelToken.json');
 const VestingContract = require('../artifacts/VestingContract.json');
 
 async function main() {
@@ -11,10 +11,10 @@ async function main() {
         deployerAddress
     );
 
-    const syncTokenAddress = process.env.SYNC_TOKEN_ADDRESS;
+    const fuelTokenAddress = process.env.FUEL_TOKEN_ADDRESS;
     const token = new ethers.Contract(
-        syncTokenAddress,
-        SyncToken.abi,
+        fuelTokenAddress,
+        FuelToken.abi,
         deployer //provider
     );
 
@@ -25,14 +25,14 @@ async function main() {
         deployer
     );
 
-    //TODO: When setting up a schedule, uncomment the below and specify an amount. 25K below would be converted to WEI
-    //const vestedAmount = "25000";
+    // The amount will be converted to a WEI value - to 18 decimal places
+    const vestedAmount = process.env.NEW_VESTING_SCHEDULE_WITH_DELEGATION_AMOUNT;
     const tx1 = await token.approve(vestingContract.address, utils.parseEther(vestedAmount));
 
     // we need the approval to go through before creating a schedule
     await tx1.wait();
 
-    //const beneficiary = "0x551433A38041D898C599940dC3c3F96bBd7876aA";
+    const beneficiary = process.env.NEW_VESTING_SCHEDULE_WITH_DELEGATION_BENEFICIARY;
     await vestingContract.createVestingSchedule(
         beneficiary,// beneficiary
         utils.parseEther(vestedAmount)// amount

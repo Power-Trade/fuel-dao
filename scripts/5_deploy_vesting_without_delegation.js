@@ -6,8 +6,8 @@ async function main() {
         deployerAddress
     );
 
-    const syncTokenAddress = process.env.SYNC_TOKEN_ADDRESS;
-    console.log('Sync Token Address', syncTokenAddress);
+    const fuelTokenAddress = process.env.FUEL_TOKEN_ADDRESS;
+    console.log('Fuel Token Address', fuelTokenAddress);
 
     const start = process.env.VESTING_START;
     console.log('Start UNIX timestamp', start);
@@ -20,7 +20,7 @@ async function main() {
 
     const vestingContractFactory = await ethers.getContractFactory("VestingContractWithoutDelegation");
     const vestingContract = await vestingContractFactory.deploy(
-        syncTokenAddress,
+        fuelTokenAddress,
         start,
         end,
         cliffDuration

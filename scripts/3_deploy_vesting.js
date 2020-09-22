@@ -6,8 +6,8 @@ async function main() {
         deployerAddress
     );
 
-    const syncTokenAddress = process.env.SYNC_TOKEN_ADDRESS;
-    console.log('Sync Token Address', syncTokenAddress);
+    const fuelTokenAddress = process.env.FUEL_TOKEN_ADDRESS;
+    console.log('Fuel Token Address', fuelTokenAddress);
 
     const baseVestingDepositAccountAddress = process.env.BASE_DEPOSIT_ACCOUNT_ADDRESS;
     console.log('Base vesting deposit account', baseVestingDepositAccountAddress);
@@ -23,7 +23,7 @@ async function main() {
 
     const vestingContractFactory = await ethers.getContractFactory("VestingContract");
     const vestingContract = await vestingContractFactory.deploy(
-        syncTokenAddress,
+        fuelTokenAddress,
         baseVestingDepositAccountAddress,
         start,
         end,
