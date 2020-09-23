@@ -4,7 +4,7 @@
   "description": "Sync DAO Solidity Smart Contracts",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npx buidler test"
   },
   "repository": {
     "type": "git",
@@ -33,8 +33,7 @@
     "mocha": "^8.1.3",
     "moment": "^2.27.0",
     "solidity-coverage": "^0.7.10",
-    "web3": "^1.2.11",
-    "openzeppelin-solidity-2.3.0": "npm:openzeppelin-solidity@2.3.0"
+    "web3": "^1.2.11"
   },
   "dependencies": {
     "lodash": "^4.17.20"

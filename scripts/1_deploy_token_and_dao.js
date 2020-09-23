@@ -14,17 +14,17 @@ async function main() {
     "Deploying contracts with the account:",
     await deployer.getAddress()
   );
-  
+
   const Timelock = await ethers.getContractFactory("Timelock");
   const timelock = await Timelock.deploy(await deployer.getAddress(), TIMELOCK_DELAY, TIMELOCK_GRACE_PERIOD);
   await timelock.deployed();
   console.log('Timelock deployed at', timelock.address)
-  const SyncToken = await ethers.getContractFactory("SyncToken");
-  const syncToken = await SyncToken.deploy(TOKEN_SUPPLY, GOVERNOR_GUARDIAN, timelock.address);
-  await syncToken.deployed();
-  console.log('SyncToken deployed at', syncToken.address)
+  const FuelToken = await ethers.getContractFactory("FuelToken");
+  const fuelToken = await FuelToken.deploy(TOKEN_SUPPLY, GOVERNOR_GUARDIAN, timelock.address);
+  await fuelToken.deployed();
+  console.log('FuelToken deployed at', fuelToken.address)
   const Governor = await ethers.getContractFactory("Governor");
-  const governor = await Governor.deploy(timelock.address, syncToken.address, await deployer.getAddress(), GOVERNOR_QUORUM, GOVERNOR_PROPOSAL_THRESHOLD, GOVERNOR_VOTING_PERIOD_BLOCKS, GOVERNOR_VOTING_DELAY_BLOCKS);
+  const governor = await Governor.deploy(timelock.address, fuelToken.address, await deployer.getAddress(), GOVERNOR_QUORUM, GOVERNOR_PROPOSAL_THRESHOLD, GOVERNOR_VOTING_PERIOD_BLOCKS, GOVERNOR_VOTING_DELAY_BLOCKS);
   await governor.deployed();
   console.log('Governor deployed at', governor.address)
   console.log('Transferring timelock ownership to Governor');
