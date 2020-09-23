@@ -99,6 +99,17 @@ contract VestingContractWithoutDelegation is ReentrancyGuard {
     }
 
     /**
+     * @notice Transfers ownership role
+     * @notice Changes the owner of this contract to a new address
+     * @dev Only owner
+     * @param _newOwner beneficiary to vest remaining tokens to
+     */
+    function transferOwnership(address _newOwner) external {
+        require(msg.sender == owner, "VestingContract::transferOwnership: Only owner");
+        owner = _newOwner;
+    }
+
+    /**
      * @notice Draws down any vested tokens due
      * @dev Must be called directly by the beneficiary assigned the tokens in the schedule
      */
