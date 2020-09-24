@@ -36,6 +36,7 @@
     "web3": "^1.2.11"
   },
   "dependencies": {
-    "lodash": "^4.17.20"
+    "lodash": "^4.17.20",
+    "prompt-sync": "^4.2.0"
   }
 }

@@ -1,3 +1,6 @@
+var prompt = require('prompt-sync')();
+const getOverrides = require('./getOverrides');
+
 async function main() {
     const [deployer] = await ethers.getSigners();
     const deployerAddress = await deployer.getAddress();
@@ -5,20 +8,21 @@ async function main() {
         "Deploying vesting contract with the account:",
         deployerAddress
     );
+    const overrides = getOverrides();
 
-    const fuelTokenAddress = process.env.FUEL_TOKEN_ADDRESS;
-    console.log('Fuel Token Address', fuelTokenAddress);
+    const fuelTokenAddress = prompt('FuelToken address? ');
 
-    const baseVestingDepositAccountAddress = process.env.BASE_DEPOSIT_ACCOUNT_ADDRESS;
-    console.log('Base vesting deposit account', baseVestingDepositAccountAddress);
+    const baseVestingDepositAccountAddress = prompt('VestingDepositAccount address? ');
 
-    const start = process.env.VESTING_START;
+    const start = "1600956000";
     console.log('Start UNIX timestamp', start);
 
-    const end = process.env.VESTING_END;
+    const vestingYears = Number(prompt('Number of vesting years? (1 or 2) '));
+    if(vestingYears !== 1 && vestingYears !== 2) throw new Error('Invalid vesting year number')
+    const end = vestingYears === 1? "1632492000": "1664028000"
     console.log('End UNIX timestamp', end);
 
-    const cliffDuration = process.env.VESTING_CLIFF_DURATION_IN_SECONDS;
+    const cliffDuration = 0
     console.log('Cliff duration in seconds', cliffDuration);
 
     const vestingContractFactory = await ethers.getContractFactory("VestingContract");
@@ -27,10 +31,11 @@ async function main() {
         baseVestingDepositAccountAddress,
         start,
         end,
-        cliffDuration
+        cliffDuration,
+        overrides
     );
 
-    console.log('Vesting contract deployed at:', (await vestingContract.deployed()).address);
+    console.log(String(vestingYears), 'year vesting contract deployed at:', (await vestingContract.deployed()).address);
 }
 
 main()

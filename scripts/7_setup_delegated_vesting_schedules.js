@@ -6,15 +6,16 @@ const {BigNumber, utils} = require('ethers');
 const getOverrides = require('./getOverrides');
 
 const FuelToken = require('../artifacts/FuelToken.json');
-const VestingContractWithoutDelegation = require('../artifacts/VestingContractWithoutDelegation.json');
+const VestingContract = require('../artifacts/VestingContract.json');
 
 async function main() {
     const [deployer] = await ethers.getSigners();
     const deployerAddress = await deployer.getAddress();
     console.log(
-        "Setting up vesting schedules without voting rights with the account:",
+        "Setting up vesting schedules with delegated voting rights with the account:",
         deployerAddress
     );
+
     const overrides = getOverrides();
 
     const fuelTokenAddress = prompt('FuelToken address? ');
@@ -24,10 +25,10 @@ async function main() {
         deployer //provider
     );
 
-    const vestingContractAddress = prompt('VestingContractWithoutDelegation address? ');
+    const vestingContractAddress = prompt('VestingContract address? ');
     const vestingContract = new ethers.Contract(
         vestingContractAddress,
-        VestingContractWithoutDelegation.abi,
+        VestingContract.abi,
         deployer
     );
 
@@ -67,12 +68,22 @@ async function main() {
     await tx1.wait();
 
     // Create the vesting schedules
-    const tx2 = await vestingContract.createVestingSchedules(
-        beneficiaries,
-        vestedAmounts,
-        overrides
-    );
-    await tx2.wait()
+    for (let i = 0; i < beneficiaries.length; i++) {
+        console.log(`Attempting to vest ${utils.formatEther(vestedAmounts[i])} for ${beneficiaries[i]}`)
+        try {
+            const tx2 = await vestingContract.createVestingSchedule(
+                beneficiaries[i],
+                vestedAmounts[i],
+                overrides
+            );
+            await tx2.wait();
+            console.log(`Successfully vested ${beneficiaries[i]}`)
+        } catch(e) {
+            console.log(`FAILED AT ${beneficiaries[i]}. MAKE SURE PAYMENT WAS NOT IN FACT SENT AND RETRY STARTING FROM LINE ${i+2}`)
+            console.log(e);
+            break;
+        }
+    }
     console.log('Done!')
 }
 
