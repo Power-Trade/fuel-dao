@@ -35,7 +35,7 @@ async function main() {
 
     console.log('Staking...', tx);
     await tx.wait();
-    
+
     console.log('Staking complete');
 }
 
