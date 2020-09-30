@@ -2,7 +2,7 @@ async function main() {
     const [deployer] = await ethers.getSigners();
     const deployerAddress = await deployer.getAddress();
     console.log(
-        "Deploying deposit contract with the account:",
+        "Deploying staking rewards factory:",
         deployerAddress
     );
 

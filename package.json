@@ -36,6 +36,7 @@
     "web3": "^1.2.11"
   },
   "dependencies": {
-    "lodash": "^4.17.20"
+    "lodash": "^4.17.20",
+    "openzeppelin-solidity-2.3.0": "npm:openzeppelin-solidity@2.3.0"
   }
 }
