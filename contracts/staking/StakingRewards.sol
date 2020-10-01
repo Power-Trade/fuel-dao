@@ -20,7 +20,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
     IERC20 public stakingToken;
     uint256 public periodFinish = 0;
     uint256 public rewardRate = 0;
-    uint256 public rewardsDuration = 60 days;
+    uint256 public rewardsDuration;
     uint256 public lastUpdateTime;
     uint256 public rewardPerTokenStored;
 
@@ -35,11 +35,13 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
     constructor(
         address _rewardsDistribution,
         address _rewardsToken,
-        address _stakingToken
+        address _stakingToken,
+        uint _rewardsDurationDays
     ) public {
         rewardsToken = IERC20(_rewardsToken);
         stakingToken = IERC20(_stakingToken);
         rewardsDistribution = _rewardsDistribution;
+        rewardsDuration = _rewardsDurationDays * (1 days);
     }
 
     /* ========== VIEWS ========== */

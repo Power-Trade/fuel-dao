@@ -1,3 +1,6 @@
+const getOverrides = require('./getOverrides');
+var prompt = require('prompt-sync')();
+
 async function main() {
   const [deployer] = await ethers.getSigners();
   const deployerAddress = await deployer.getAddress();
@@ -7,12 +10,14 @@ async function main() {
     deployerAddress
   );
 
-  const fuelTokenAddress = process.env.FUEL_TOKEN_ADDRESS;
+  const overrides = getOverrides();
+
+  const fuelTokenAddress = prompt('FuelToken address? ');
 
   const stakingRewardsFactoryFactory = await ethers.getContractFactory("StakingRewardsFactory");
   const stakingRewardsFactory = await stakingRewardsFactoryFactory.deploy(
     fuelTokenAddress,
-    "1601464858" // TODO check starting time stamp
+    overrides
   );
 
   console.log('Staking rewards factory deployed at:', (await stakingRewardsFactory.deployed()).address);
