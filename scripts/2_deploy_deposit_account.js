@@ -1,3 +1,5 @@
+const getOverrides = require('./getOverrides');
+
 async function main() {
     const [deployer] = await ethers.getSigners();
     const deployerAddress = await deployer.getAddress();
@@ -6,8 +8,10 @@ async function main() {
         deployerAddress
     );
 
+    const overrides = getOverrides();
+
     const depositContractFactory = await ethers.getContractFactory("VestingDepositAccount");
-    const depositContract = await depositContractFactory.deploy();
+    const depositContract = await depositContractFactory.deploy(overrides);
 
     console.log('Vesting deposit contract deployed at:', (await depositContract.deployed()).address);
 }

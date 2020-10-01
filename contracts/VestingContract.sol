@@ -158,6 +158,17 @@ contract VestingContract is CloneFactory, ReentrancyGuard {
         vestingSchedule[_newBeneficiary].depositAccount.switchBeneficiary(_newBeneficiary);
     }
 
+    /**
+     * @notice Transfers ownership role
+     * @notice Changes the owner of this contract to a new address
+     * @dev Only owner
+     * @param _newOwner beneficiary to vest remaining tokens to
+     */
+    function transferOwnership(address _newOwner) external {
+        require(msg.sender == owner, "VestingContract::transferOwnership: Only owner");
+        owner = _newOwner;
+    }
+
     // Accessors
 
     /**

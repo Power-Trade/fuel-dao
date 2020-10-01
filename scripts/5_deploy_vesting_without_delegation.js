@@ -1,3 +1,6 @@
+var prompt = require('prompt-sync')();
+const getOverrides = require('./getOverrides');
+
 async function main() {
     const [deployer] = await ethers.getSigners();
     const deployerAddress = await deployer.getAddress();
@@ -5,17 +8,17 @@ async function main() {
         "Deploying vesting contract without delegation with the account:",
         deployerAddress
     );
+    const overrides = getOverrides();
 
-    const fuelTokenAddress = process.env.FUEL_TOKEN_ADDRESS;
-    console.log('Fuel Token Address', fuelTokenAddress);
+    const fuelTokenAddress = prompt('FuelToken address? ');
 
-    const start = process.env.VESTING_START;
+    const start = "1600956000";
     console.log('Start UNIX timestamp', start);
 
-    const end = process.env.VESTING_END;
+    const end = "1608818400";
     console.log('End UNIX timestamp', end);
 
-    const cliffDuration = process.env.VESTING_CLIFF_DURATION_IN_SECONDS;
+    const cliffDuration = 0;
     console.log('Cliff duration in seconds', cliffDuration);
 
     const vestingContractFactory = await ethers.getContractFactory("VestingContractWithoutDelegation");
@@ -23,7 +26,8 @@ async function main() {
         fuelTokenAddress,
         start,
         end,
-        cliffDuration
+        cliffDuration,
+        overrides
     );
 
     await vestingContract.deployed();
