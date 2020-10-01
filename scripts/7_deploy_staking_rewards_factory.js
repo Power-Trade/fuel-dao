@@ -12,7 +12,7 @@ async function main() {
   const stakingRewardsFactoryFactory = await ethers.getContractFactory("StakingRewardsFactory");
   const stakingRewardsFactory = await stakingRewardsFactoryFactory.deploy(
     fuelTokenAddress,
-    "1601464858" // THIS should be a short time in the future --- I think...
+    "1601464858" // TODO check starting time stamp
   );
 
   console.log('Staking rewards factory deployed at:', (await stakingRewardsFactory.deployed()).address);

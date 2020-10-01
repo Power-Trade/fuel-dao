@@ -25,6 +25,9 @@ async function main() {
   // we need the approval to go through before creating a schedule
   await tx1.wait();
 
+  // TODO TOM to double check this!
+  // send PTF to stakingRewardsFactory - same amount as above when deploying
+
   console.log('Deployed staking rewards contract with staking token: ', stakingTokenAddress);
 }
 
