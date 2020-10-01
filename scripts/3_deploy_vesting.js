@@ -14,12 +14,26 @@ async function main() {
 
     const baseVestingDepositAccountAddress = prompt('VestingDepositAccount address? ');
 
-    const start = "1600956000";
+    const vestingYears = prompt('Number of vesting years? (1, 2, T for Team or P for Partnerships) ');
+    let start;
+    let end;
+    if(Number(vestingYears) === 1) {
+        start = "1600956000"
+        end = "1632492000"
+    } else if(Number(vestingYears) === 2) {
+        start = "1600956000"
+        end = "1664028000"
+    } else if(vestingYears === "T") {
+        start = "1616594400"
+        end = "1727186400"
+    } else if(vestingYears === "P") {
+        start = "1608818400"
+        end = "1664028000"
+    } else {
+        throw new Error('Invalid vesting years value')
+    }
+    
     console.log('Start UNIX timestamp', start);
-
-    const vestingYears = Number(prompt('Number of vesting years? (1 or 2) '));
-    if(vestingYears !== 1 && vestingYears !== 2) throw new Error('Invalid vesting year number')
-    const end = vestingYears === 1? "1632492000": "1664028000"
     console.log('End UNIX timestamp', end);
 
     const cliffDuration = 0
