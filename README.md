@@ -22,12 +22,17 @@ Please see `.env.example` for some of the properties you set up. Different scrip
 
 ## Mainnet Contracts
 
-* Timelock (DAO treasury & agent): TBA
-* FuelToken: TBA
-* Governor: TBA
-* VestingDepositAccount
-* VestingContract
-* VestingContractWithoutDelegation
+* Timelock (DAO treasury & agent): [0x9c48850a6e5b9742ed78fe4c0b820ec15d108ad6](https://etherscan.io/address/0x9c48850a6e5b9742ed78fe4c0b820ec15d108ad6)
+* FuelToken: [0xc57d533c50bc22247d49a368880fb49a1caa39f7](https://etherscan.io/address/0xc57d533c50bc22247d49a368880fb49a1caa39f7)
+* Governor: [0x951101e8de28d5d45844e639897e700a03931f83](https://etherscan.io/address/0x951101e8de28d5d45844e639897e700a03931f83)
+* VestingDepositAccount: [0xDFDD6014A6b92Ed74A3b34f171d6b07CDf8d91dE](https://etherscan.io/address/0xDFDD6014A6b92Ed74A3b34f171d6b07CDf8d91dE)
+* VestingContractWithoutDelegation: [0x6a03796E882BED3B1FF1747b8563f3C2c11F0Ff3](https://etherscan.io/address/0x6a03796E882BED3B1FF1747b8563f3C2c11F0Ff3)
+* VestingContract (2yr): [0x63005B1bE2BF27B3B563daf7781BE46A1Ff17D1e](https://etherscan.io/address/0x63005B1bE2BF27B3B563daf7781BE46A1Ff17D1e)
+* VestingContract (1yr): [0x4aABE30996E6A57Bd5d836e20fBCAa62e0BAa176](https://etherscan.io/address/0x4aABE30996E6A57Bd5d836e20fBCAa62e0BAa176)
+* VestingContract (4yr 6m wait): [0x231FEd774ed1b3F4e4bA53d0E62b2E24C661880f](https://etherscan.io/address/0x231FEd774ed1b3F4e4bA53d0E62b2E24C661880f)
+* VestingContract (2yr 3m wait): [0x07010F6Ec127610B11633374C383a2FE5bD80CC7](https://etherscan.io/address/0x07010F6Ec127610B11633374C383a2FE5bD80CC7)
+* StakingRewardsFactory: [0xEa3241aC9dd3e5e29989399908ea6A4460E748F8](https://etherscan.io/address/0xEa3241aC9dd3e5e29989399908ea6A4460E748F8)
+* StakingRewards (Oct 5, 2020): [0x1a72663a12d2F2F115f5B84065c5c290674fBe16](https://etherscan.io/address/0x1a72663a12d2F2F115f5B84065c5c290674fBe16)
 
 ## Vesting Contracts
 
