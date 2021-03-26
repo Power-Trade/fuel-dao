@@ -143,6 +143,15 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
         emit RewardAdded(reward);
     }
 
+    function setRewardsDuration(uint256 _rewardsDuration) external {
+        require(
+            block.timestamp > periodFinish,
+            "Previous rewards period must be complete before changing the duration for the new period"
+        );
+        rewardsDuration = _rewardsDuration;
+        emit RewardsDurationUpdated(rewardsDuration);
+    }
+
     /* ========== MODIFIERS ========== */
 
     modifier updateReward(address account) {
@@ -161,6 +170,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
     event Staked(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
     event RewardPaid(address indexed user, uint256 reward);
+    event RewardsDurationUpdated(uint256 newDuration);
 }
 
 interface IUniswapV2ERC20 {
