@@ -7,13 +7,13 @@ import "openzeppelin-solidity-2.3.0/contracts/token/ERC20/SafeERC20.sol";
 import "openzeppelin-solidity-2.3.0/contracts/utils/ReentrancyGuard.sol";
 
 // Inheritance
-import "./interfaces/IStakingRewards.sol";
-import "./RewardsDistributionRecipient.sol";
-import "./Pausable.sol";
+import "./interfaces/IStakingRewards_Synthetix.sol";
+import "./RewardsDistributionRecipient_Synthetix.sol";
+import "./Pausable_Synthetix.sol";
 
 
 // https://docs.synthetix.io/contracts/source/contracts/stakingrewards
-contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, ReentrancyGuard, Pausable {
+contract StakingRewards_Synthetix is IStakingRewards_Synthetix, RewardsDistributionRecipient_Synthetix, ReentrancyGuard, Pausable_Synthetix {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -40,7 +40,7 @@ contract StakingRewards is IStakingRewards, RewardsDistributionRecipient, Reentr
         address _rewardsDistribution,
         address _rewardsToken,
         address _stakingToken
-    ) public Owned(_owner) {
+    ) public Owned_Synthetix(_owner) {
         rewardsToken = IERC20(_rewardsToken);
         stakingToken = IERC20(_stakingToken);
         rewardsDistribution = _rewardsDistribution;

@@ -2,7 +2,7 @@ pragma solidity >=0.4.24;
 
 
 // https://docs.synthetix.io/contracts/source/interfaces/istakingrewards
-interface IStakingRewards {
+interface IStakingRewards_Synthetix {
     // Views
     function lastTimeRewardApplicable() external view returns (uint256);
 
