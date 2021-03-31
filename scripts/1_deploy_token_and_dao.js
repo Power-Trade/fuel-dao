@@ -27,7 +27,8 @@ async function main() {
   const FuelToken = await ethers.getContractFactory("FuelToken");
   const fuelToken = await FuelToken.deploy(TOKEN_SUPPLY, GOVERNOR_GUARDIAN, timelock.address, overrides);
   await fuelToken.deployed();
-  console.log('FuelToken deployed at', fuelToken.address)
+  console.log('FuelToken deployed at: ', fuelToken.address)
+  console.log('FuelToken total supply: ', (await fuelToken.totalSupply()).toString())
   const Governor = await ethers.getContractFactory("Governor");
   const governor = await Governor.deploy(timelock.address, fuelToken.address, await deployer.getAddress(), GOVERNOR_QUORUM, GOVERNOR_PROPOSAL_THRESHOLD, GOVERNOR_VOTING_PERIOD_BLOCKS, GOVERNOR_VOTING_DELAY_BLOCKS, overrides);
   await governor.deployed();
