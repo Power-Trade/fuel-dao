@@ -1,11 +1,11 @@
 pragma solidity ^0.5.16;
 
 // Inheritance
-import "./Owned_Synthetix.sol";
+import "./OwnedV2.sol";
 
 
 // https://docs.synthetix.io/contracts/source/contracts/pausable
-contract Pausable_Synthetix is Owned_Synthetix {
+contract PausableV2 is OwnedV2 {
     uint public lastPauseTime;
     bool public paused;
 

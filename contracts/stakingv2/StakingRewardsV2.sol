@@ -7,13 +7,12 @@ import "openzeppelin-solidity-2.3.0/contracts/token/ERC20/SafeERC20.sol";
 import "openzeppelin-solidity-2.3.0/contracts/utils/ReentrancyGuard.sol";
 
 // Inheritance
-import "./interfaces/IStakingRewards_Synthetix.sol";
-import "./RewardsDistributionRecipient_Synthetix.sol";
-import "./Pausable_Synthetix.sol";
+import "./interfaces/IStakingRewardsV2.sol";
+import "./PausableV2.sol";
 
 
 // https://docs.synthetix.io/contracts/source/contracts/stakingrewards
-contract StakingRewards_Synthetix is IStakingRewards_Synthetix, RewardsDistributionRecipient_Synthetix, ReentrancyGuard, Pausable_Synthetix {
+contract StakingRewardsV2 is IStakingRewardsV2, ReentrancyGuard, PausableV2 {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -37,13 +36,11 @@ contract StakingRewards_Synthetix is IStakingRewards_Synthetix, RewardsDistribut
 
     constructor(
         address _owner,
-        address _rewardsDistribution,
         address _rewardsToken,
         address _stakingToken
-    ) public Owned_Synthetix(_owner) {
+    ) public OwnedV2(_owner) {
         rewardsToken = IERC20(_rewardsToken);
         stakingToken = IERC20(_stakingToken);
-        rewardsDistribution = _rewardsDistribution;
     }
 
     /* ========== VIEWS ========== */
@@ -112,7 +109,7 @@ contract StakingRewards_Synthetix is IStakingRewards_Synthetix, RewardsDistribut
 
     /* ========== RESTRICTED FUNCTIONS ========== */
 
-    function notifyRewardAmount(uint256 reward) external onlyRewardsDistribution updateReward(address(0)) {
+    function notifyRewardAmount(uint256 reward) external onlyOwner updateReward(address(0)) {
         if (block.timestamp >= periodFinish) {
             rewardRate = reward.div(rewardsDuration);
         } else {
@@ -131,11 +128,6 @@ contract StakingRewards_Synthetix is IStakingRewards_Synthetix, RewardsDistribut
         lastUpdateTime = block.timestamp;
         periodFinish = block.timestamp.add(rewardsDuration);
         emit RewardAdded(reward);
-    }
-
-    // End rewards emission earlier
-    function updatePeriodFinish(uint timestamp) external onlyOwner updateReward(address(0)) {
-        periodFinish = timestamp;
     }
 
     // Added to support recovering LP Rewards from other systems such as BAL to be distributed to holders

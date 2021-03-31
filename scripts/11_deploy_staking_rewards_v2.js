@@ -1,4 +1,3 @@
-const { utils } = require('ethers');
 const getOverrides = require('./getOverrides');
 var prompt = require('prompt-sync')();
 
@@ -13,20 +12,18 @@ async function main() {
 
   const overrides = getOverrides();
   
-  // Rewards Distribution
-  const stakingRewardsFactoryAddress = prompt('Staking Rewards Factory address? ');
   // Rewards Token
   const fuelTokenAddress = prompt('FuelToken address? ');
   // Staking Token
   const stakingTokenAddress = prompt('Staking token address? ');
 
   try {
-    const StakingRewardsSynthetix = await ethers.getContractFactory("StakingRewards_Synthetix");
-    const stakingRewards = await StakingRewardsSynthetix.deploy(deployerAddress, stakingRewardsFactoryAddress, fuelTokenAddress, stakingTokenAddress, overrides);
+    const StakingRewardsV2 = await ethers.getContractFactory("StakingRewardsV2");
+    const stakingRewards = await StakingRewardsV2.deploy(deployerAddress, fuelTokenAddress, stakingTokenAddress, overrides);
     await stakingRewards.deployed();
     await stakingRewards.deployTransaction.wait();
 
-    console.log(`StakingRewards_Synthetix deployed to: ${stakingRewards.address}`)
+    console.log(`StakingRewardsV2 deployed to: ${stakingRewards.address}`)
   } catch(e) {
     console.error(e);
   }
