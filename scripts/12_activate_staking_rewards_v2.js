@@ -13,9 +13,6 @@ async function main() {
 
   const overrides = getOverrides();
 
-  const ownerOfPTFRewards = prompt(
-    "Owner of PTF Rewards address (blank if is same as deployer)? "
-  );
   const fuelTokenAddress = prompt("Fuel Token address? ");
   const stakingRewardsV2Address = prompt("StakingRewardsV2 address? ");
   const rewardsDays = prompt(
@@ -44,35 +41,19 @@ async function main() {
 
     const totalRewardsInWei = utils.parseEther(totalReward);
 
-    // Emulate the transfer that is happening inside the V1 StakingRewardsFactory
-    if (ownerOfPTFRewards) {
-      const checkBalance = await rewardsToken.balanceOf(ownerOfPTFRewards);
-      console.log(`${ownerOfPTFRewards} has ${checkBalance} tokens inside. `);
+    // Transfer Rewards token to staking contract
+    const checkBalance = await rewardsToken.balanceOf(deployerAddress);
+    console.log(`${deployerAddress} has ${checkBalance} tokens inside. `);
 
-      console.log(
-        `Attempting transfer of ${totalReward} PTF tokens from ${ownerOfPTFRewards} to staking contract at ${stakingRewardsV2Address}`
-      );
+    console.log(
+      `Attempting transfer of ${totalReward} PTF tokens from ${deployerAddress} to staking contract at ${stakingRewardsV2Address}`
+    );
 
-      const transfer = await rewardsToken.transferFrom(
-        ownerOfPTFRewards,
-        stakingRewards.address,
-        totalRewardsInWei
-      );
-      await transfer.wait();
-    } else {
-      const checkBalance = await rewardsToken.balanceOf(deployerAddress);
-      console.log(`${deployerAddress} has ${checkBalance} tokens inside. `);
-
-      console.log(
-        `Attempting transfer of ${totalReward} PTF tokens from ${deployerAddress} to staking contract at ${stakingRewardsV2Address}`
-      );
-
-      const transfer = await rewardsToken.transfer(
-        stakingRewards.address,
-        totalRewardsInWei
-      );
-      await transfer.wait();
-    }
+    const transfer = await rewardsToken.transfer(
+      stakingRewards.address,
+      totalRewardsInWei
+    );
+    await transfer.wait();
 
     console.log(
       "Fuel tokens transfered into staking rewards address. Staking address supply now is (in wei): ",
