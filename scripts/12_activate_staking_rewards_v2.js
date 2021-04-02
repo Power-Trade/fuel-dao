@@ -21,6 +21,8 @@ async function main() {
   const rewardsDays = prompt(
     "Rewards duration in days? (1 or more, no decimals) "
   );
+  const rewardDuration = rewardsDays * 24 * 60 * 60; // Convert days to seconds
+
   const totalReward = prompt("Total PTF rewards? ");
 
   const rewardsToken = new ethers.Contract(
@@ -37,7 +39,7 @@ async function main() {
 
   try {
     console.log(`Setting rewards duration to ${rewardsDays} days.`);
-    const tx = await stakingRewards.setRewardsDuration(rewardsDays, overrides);
+    const tx = await stakingRewards.setRewardsDuration(rewardDuration, overrides);
     await tx.wait();
 
     const totalRewardsInWei = utils.parseEther(totalReward);
