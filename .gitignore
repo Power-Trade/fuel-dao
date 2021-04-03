@@ -12,3 +12,5 @@ coverage
 *.iml
 .idea
 
+# VSCode
+.vscode/
