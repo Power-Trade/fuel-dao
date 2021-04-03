@@ -1,5 +1,6 @@
 node_modules
 .env
+scripts/distro.csv
 
 # Buidler files
 cache
@@ -11,6 +12,8 @@ coverage
 # ide junk
 *.iml
 .idea
+.DS_Store
+
 
 # VSCode
 .vscode/

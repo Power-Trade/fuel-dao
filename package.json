@@ -1,21 +1,21 @@
 {
   "name": "core",
   "version": "1.0.0",
-  "description": "Sync DAO Solidity Smart Contracts",
+  "description": "Fuel DAO Solidity Smart Contracts",
   "main": "index.js",
   "scripts": {
     "test": "npx buidler test"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/syncdao/core.git"
+    "url": "git+https://github.com/Power-Trade/fuel-dao/core.git"
   },
   "author": "",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/syncdao/core/issues"
+    "url": "https://github.com/Power-Trade/fuel-dao/issues"
   },
-  "homepage": "https://github.com/syncdao/core#readme",
+  "homepage": "https://github.com/Power-Trade/fuel-dao#readme",
   "devDependencies": {
     "@nomiclabs/buidler": "^1.4.3",
     "@nomiclabs/buidler-ethers": "^2.0.0",
