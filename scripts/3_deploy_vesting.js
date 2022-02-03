@@ -29,6 +29,12 @@ async function main() {
     } else if(vestingYears === "P") {
         start = "1608818400"
         end = "1664028000"
+    } else if(vestingYears === "Jump") {
+        start = "1619013600"
+        end = "1682085600"
+    } else if(vestingYears === "BN1") {
+        start = "1637082000"
+        end = "1645030800"
     } else {
         throw new Error('Invalid vesting years value')
     }

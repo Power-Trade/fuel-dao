@@ -51,7 +51,8 @@ async function main() {
 
     const transfer = await rewardsToken.transfer(
       stakingRewards.address,
-      totalRewardsInWei
+      totalRewardsInWei,
+      overrides
     );
     await transfer.wait();
 
